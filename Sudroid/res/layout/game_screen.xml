@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:orientation="vertical"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent">
+  
+  <com.rlamb.android.sudroid.SudroidView
+        android:id="@+id/game_view"
+        android:layout_margin="5dip"
+        android:layout_weight="1"
+        android:layout_height="match_parent" 
+        android:layout_width="match_parent"
+        />
+  
+  <LinearLayout 
+  	android:orientation="horizontal"
+  	android:layout_height="wrap_content" 
+  	android:id="@+id/linearLayout1" 
+  	android:layout_width="fill_parent">
+  
+  	<LinearLayout 
+  		android:id="@+id/linearLayout2"
+  		android:orientation="vertical"
+  		android:layout_width="fill_parent"
+  		android:layout_height="fill_parent"
+  		android:layout_weight="1"
+  		android:gravity="center_horizontal">
+  		<Button android:layout_width="50dip" android:layout_height="wrap_content" android:text="@string/one" android:id="@+id/one"></Button>
+  		<Button android:layout_width="50dip" android:layout_height="wrap_content" android:text="@string/four" android:id="@+id/four"></Button>
+  		<Button android:layout_width="50dip" android:layout_height="wrap_content" android:text="@string/seven" android:id="@+id/seven"></Button>
+  	</LinearLayout>    
+  	
+  	<LinearLayout 
+  		android:id="@+id/linearLayout3"
+  		android:orientation="vertical"
+  		android:layout_width="fill_parent"
+  		android:layout_height="fill_parent"
+  		android:layout_weight="1"
+  		android:gravity="center_horizontal">
+  		<Button android:layout_width="50dip" android:layout_height="wrap_content" android:text="@string/two" android:id="@+id/two"></Button>
+  		<Button android:layout_width="50dip" android:layout_height="wrap_content" android:text="@string/five" android:id="@+id/five"></Button>
+  		<Button android:layout_width="50dip" android:layout_height="wrap_content" android:text="@string/eight" android:id="@+id/eight"></Button>
+  	</LinearLayout> 
+  	
+  	<LinearLayout 
+  		android:id="@+id/linearLayout4"
+  		android:orientation="vertical"
+  		android:layout_width="fill_parent"
+  		android:layout_height="fill_parent"
+  		android:layout_weight="1"
+  		android:gravity="center_horizontal">
+  		<Button android:layout_width="50dip" android:layout_height="wrap_content" android:text="@string/three" android:id="@+id/three"></Button>
+  		<Button android:layout_width="50dip" android:layout_height="wrap_content" android:text="@string/six" android:id="@+id/six"></Button>
+  		<Button android:layout_width="50dip" android:layout_height="wrap_content" android:text="@string/nine" android:id="@+id/nine"></Button>
+  	</LinearLayout> 
+  	
+  	<LinearLayout 
+  		android:id="@+id/linearLayout5"
+  		android:layout_width="fill_parent"
+  		android:layout_height="fill_parent"
+  		android:layout_weight="1" android:orientation="vertical"
+  		android:gravity="center_horizontal">
+  		<Button android:layout_width="60dip" android:layout_height="wrap_content" android:text="@string/clear" android:id="@+id/clear"></Button>
+  		<Button android:layout_width="60dip" android:layout_height="wrap_content" android:text="@string/reset" android:id="@+id/reset"></Button>
+  		<TextView android:text="@string/startTime" android:layout_width="wrap_content" android:gravity="center_vertical|center_horizontal" android:layout_height="wrap_content" android:textAppearance="?android:attr/textAppearanceLarge" android:layout_marginTop="10dip" android:id="@+id/time"></TextView>
+  	</LinearLayout> 
+  </LinearLayout>
+     
+</LinearLayout>

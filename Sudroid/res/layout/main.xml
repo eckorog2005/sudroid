@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout 
+	xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent" 
+    android:layout_height="match_parent"
+    android:gravity="center_horizontal">
+    
+    <TextView 
+    	android:id="@+id/textView1" 
+    	android:layout_height="wrap_content" 
+    	android:textAppearance="?android:attr/textAppearanceLarge" 
+    	android:layout_width="match_parent" 
+    	android:gravity="center_horizontal" 
+    	android:layout_marginTop="20dip" 
+    	android:text="@string/name" 
+    	android:layout_marginBottom="50dip" 
+    	android:textColor="@color/white" 
+    	android:textSize="40dip">
+    </TextView>
+<!--      
+    <Button 
+    	android:layout_height="wrap_content" 
+    	android:text="@string/weeklyPuzzle" 
+    	android:layout_width="150dip" 
+    	android:enabled="false" 
+    	android:id="@+id/weekPuzzle">
+    </Button>
+-->   
+    <Button 
+    	android:layout_height="wrap_content" 
+    	android:text="@string/resume" 
+    	android:layout_width="150dip" 
+    	android:layout_marginTop="25dip" 
+    	android:enabled="false" 
+    	android:id="@+id/resume">
+   	</Button>
+   	
+    <Button 
+    	android:layout_height="wrap_content" 
+    	android:text="@string/easy" 
+    	android:layout_width="150dip"
+    	android:layout_marginTop="25dip" 
+    	android:id="@+id/easy">
+    </Button>
+    
+    <Button 
+    	android:layout_height="wrap_content" 
+    	android:text="@string/medium" 
+    	android:layout_width="150dip"
+    	android:layout_marginTop="25dip" 
+    	android:id="@+id/medium">
+    </Button>
+    
+    <Button 
+    	android:layout_height="wrap_content" 
+    	android:text="@string/hard" 
+    	android:layout_width="150dip"
+    	android:layout_marginTop="25dip" 
+    	android:id="@+id/hard">
+    </Button>
+    
+</LinearLayout>

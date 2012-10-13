@@ -22,7 +22,6 @@
         	android:textAppearance="?android:attr/textAppearanceLarge" 
         	android:textSize="40dip" 
         	android:gravity="center_horizontal" 
-        	android:textColor="@color/black" 
         	android:text="@string/blank" android:id="@+id/final_middle">
         </TextView>
         

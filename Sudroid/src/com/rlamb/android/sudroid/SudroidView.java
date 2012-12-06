@@ -60,7 +60,7 @@ import android.view.View;
 public class SudroidView extends View{
 
 	//frames per second
-	public static final long FPS_MS = 1000/2;
+	public static final long FPS_MS = 60;
 	
 	//background
 	private Drawable mDrawableBg;

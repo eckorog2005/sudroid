@@ -30,7 +30,6 @@ import com.rlamb.android.sudroid.R;
 import com.rlamb.android.sudroid.SudroidGameActivity.ActivityHandler;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.res.Resources;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -39,10 +38,10 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Bitmap.Config;
-import android.graphics.BitmapFactory.Options;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.os.Parcelable;
 import android.os.Handler.Callback;
@@ -97,7 +96,7 @@ public class SudroidView extends View{
 	private int mOffetY;
 	
 	//holds this class handlers
-	private final Handler mHandler = new Handler(new MyHandler());
+	private final Handler mHandler = new Handler(Looper.getMainLooper(), new MyHandler());
 	private Handler aHandler;
 
 	//timer value
@@ -132,8 +131,8 @@ public class SudroidView extends View{
 		this.requestFocus();
 		
 		//draw grid
-		mDrawableBg = getResources().getDrawable(R.drawable.grid);
-        setBackgroundDrawable(mDrawableBg);
+		mDrawableBg = getContext().getDrawable(R.drawable.grid);
+        setBackground(mDrawableBg);
         
         //set the sprites
         setBitmaps();
@@ -371,17 +370,14 @@ public class SudroidView extends View{
   	 * @return
   	 */
 	private Bitmap getResBitmap(int bmpResId) {
-        Options opts = new Options();
-        opts.inDither = false;
 
-        Resources res = getResources();
-        Bitmap bmp = BitmapFactory.decodeResource(res, bmpResId, opts);
+        Bitmap bmp = BitmapFactory.decodeResource(getResources(), bmpResId);
 
         if (bmp == null && isInEditMode()) {
             // BitmapFactory.decodeResource doesn't work from the rendering
             // library in Eclipse's Graphical Layout Editor. Use this workaround instead.
 
-            Drawable d = res.getDrawable(bmpResId);
+            Drawable d = getContext().getDrawable(bmpResId);
             int w = d.getIntrinsicWidth();
             int h = d.getIntrinsicHeight();
             bmp = Bitmap.createBitmap(w, h, Config.ARGB_8888);
@@ -465,7 +461,7 @@ public class SudroidView extends View{
 	 * @param activityHandler
 	 */
 	public void setActivityHandler(ActivityHandler activityHandler) {
-		aHandler = new Handler(activityHandler);	
+		aHandler = new Handler(Looper.getMainLooper(), activityHandler);	
 	}
 	
 	/**

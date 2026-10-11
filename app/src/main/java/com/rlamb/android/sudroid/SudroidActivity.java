@@ -122,10 +122,10 @@ public class SudroidActivity extends Activity {
         				null, null, null, null);
         		if(cursor.moveToNext()){
         			i  = new Intent(this, SudroidHighScoreActivity.class);
-                	i.putExtra(SudroidHighScoreActivity.finishTime,
-                		cursor.getString(1));
-                	i.putExtra("week", true);
-                	startActivity(i);
+						i.putExtra(SudroidHighScoreActivity.finishTime,
+						cursor.getString(1));
+						i.putExtra("week", true);
+						startActivity(i);
         		}
         	}
         }

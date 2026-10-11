@@ -24,7 +24,6 @@
 package com.rlamb.android.sudroid;
 
 import android.app.Activity;
-import android.app.ProgressDialog;
 import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
@@ -54,9 +53,6 @@ public class SudroidHighScoreActivity extends Activity {
 	 public void onCreate(Bundle savedInstanceState) {
 	    	super.onCreate(savedInstanceState);
 	    	
-	    	//show the loading dialog
-	    	ProgressDialog temp = new ProgressDialog(this);
-	    	temp.show();
 	    	
 	    	//load the correct high score board
 	    	outputValue = this.getIntent().getStringExtra(finishTime);
@@ -86,8 +82,6 @@ public class SudroidHighScoreActivity extends Activity {
 	            }
 	        });
 	        
-	        //stop process board
-	        temp.dismiss();
 	 }
 
 	 /**

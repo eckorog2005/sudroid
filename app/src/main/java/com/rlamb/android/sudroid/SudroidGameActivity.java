@@ -24,7 +24,6 @@
 package com.rlamb.android.sudroid;
 
 import android.app.Activity;
-import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Message;
@@ -67,8 +66,6 @@ public class SudroidGameActivity extends Activity {
 	    	gameType = GameModeEnum.values()[this.getIntent().getIntExtra(mode, 1)];
 	    	
 	    	
-	    	ProgressDialog temp = new ProgressDialog(this);
-	    	temp.show();
 	    	
 	    	//load board
 	    	board = loadBoard(this.gameType);
@@ -186,7 +183,6 @@ public class SudroidGameActivity extends Activity {
 	            }
 	        });
 	        
-	        temp.dismiss();
 	 }
 	 
 	 /**

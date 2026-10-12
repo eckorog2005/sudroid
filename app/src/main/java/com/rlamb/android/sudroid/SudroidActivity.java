@@ -23,14 +23,14 @@
 
 package com.rlamb.android.sudroid;
 
-import android.app.Activity;
 import android.content.Intent;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
 
+import androidx.activity.ComponentActivity;
+
+import com.rlamb.android.sudroid.data.RoomGameRepository;
 import com.rlamb.android.sudroid.game.GameActivity;
 
 /**
@@ -42,7 +42,7 @@ import com.rlamb.android.sudroid.game.GameActivity;
  * 
  *
  */
-public class SudroidActivity extends Activity {
+public class SudroidActivity extends ComponentActivity {
     
 	/** Called when the activity is first created. */
     @Override
@@ -92,18 +92,10 @@ public class SudroidActivity extends Activity {
                 startGame(GameModeEnum.resume);
             }
         });
-    }
 
-    // Checked on every resume because leaving a game saves it and finishing one deletes it.
-    @Override
-    protected void onResume() {
-    	super.onResume();
-    	SudroidDatabaseHelper helper = new SudroidDatabaseHelper(this);
-    	SQLiteDatabase db = helper.getReadableDatabase();
-    	Cursor cursor = db.query("Current", new String[]{"_id"}, null, null, null, null, null);
-    	findViewById(R.id.resume).setEnabled(cursor.moveToNext());
-    	cursor.close();
-    	db.close();
+        // Leaving a game saves it and finishing one deletes it, so this tracks the database.
+        View resume = findViewById(R.id.resume);
+        RoomGameRepository.get(this).observeHasSavedGame(this, resume::setEnabled);
     }
 
     /**
@@ -112,26 +104,6 @@ public class SudroidActivity extends Activity {
      */
 	private void startGame(GameModeEnum mode) {
 		Intent i;
-        if(mode.equals(GameModeEnum.weekly)){
-        	//updateWeeklyPuzzle();
-        	SudroidDatabaseHelper helper = new SudroidDatabaseHelper(this);
-        	SQLiteDatabase db = helper.getReadableDatabase();
-        	Cursor cursor = 
-        		db.query("Weekly", new String[]{"_id", "place"}, "place != null or place != 0", 
-        				null, null, null, null);
-        	if(cursor.moveToNext()){
-        		int id = cursor.getInt(0);
-        		db.query("Puzzle", new String[]{"_id", "time"}, "_id = "+id, 
-        				null, null, null, null);
-        		if(cursor.moveToNext()){
-        			i  = new Intent(this, SudroidHighScoreActivity.class);
-						i.putExtra(SudroidHighScoreActivity.finishTime,
-						cursor.getString(1));
-						i.putExtra("week", true);
-						startActivity(i);
-        		}
-        	}
-        }
         i = new Intent(this, GameActivity.class);
         i.putExtra(GameActivity.EXTRA_MODE,
                 mode.ordinal());

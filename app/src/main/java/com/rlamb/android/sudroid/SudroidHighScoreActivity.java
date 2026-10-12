@@ -25,7 +25,6 @@ package com.rlamb.android.sudroid;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -66,12 +65,6 @@ public class SudroidHighScoreActivity extends Activity {
 	        	output = (TextView) this.findViewById(R.id.final_middle);
 	        }
 	        output.setText(outputValue);
-	        
-	        //delete current board
-	        SudroidDatabaseHelper helper = 
-	        	new SudroidDatabaseHelper(this);
-	    	SQLiteDatabase db = helper.getReadableDatabase();
-	    	db.delete("Current", null, null);
 	        
 	        //when back is selected, go to main menu
 	        findViewById(R.id.back).setOnClickListener(

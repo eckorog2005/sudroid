@@ -11,6 +11,7 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
 - `./gradlew assembleDebug assembleRelease lint` builds both variants and lints. Only the release build runs R8 minification.
 - `./gradlew installDebug` installs on a connected device or emulator.
 - `./gradlew :app:testDebugUnitTest` runs the `:app` JVM unit tests, such as `GameViewModelTest`.
+- `./gradlew :app:connectedDebugAndroidTest` runs the instrumented tests, such as `SudroidDatabaseTest`, on a connected device or emulator.
 - Building needs JDK 17 or newer.
 
 ## Modules
@@ -22,20 +23,21 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
   - While `:app` is still Java, make the public API callable from Java with `@JvmStatic`, `@JvmField` and `@JvmOverloads`.
 - `:app` mixes Kotlin (`src/main/kotlin`) and Java (`src/main/java`).
   - `game.GameActivity` hosts the Compose `GameScreen`. `GameViewModel` holds a `StateFlow<GameUiState>`, autosaves after every move, and counts time in `runClock()`, which the screen runs only while resumed.
-  - Storage goes through the `GameRepository` interface. `data.LegacyGameRepository` implements it on the original SQLite schema until Room replaces it.
+  - Storage goes through the `GameRepository` interface, implemented by `data.RoomGameRepository` on the Room `SudroidDatabase`. Saves run in a process-wide scope passed to `GameViewModel`, so the last save or delete lands after the screen closes.
   - The menu (`SudroidActivity`) and score screen (`SudroidHighScoreActivity`) are still Java Activities. The menu starts the game with a `GameModeEnum` ordinal in `GameActivity.EXTRA_MODE`.
 
 ## Puzzle data and saves
 
-- Puzzles ship as SQL statements in `app/src/main/assets/data.txt`, 150 each for easy, medium and hard. `SudroidDatabaseHelper.onCreate` runs them on first launch.
-- The database is at version 1 and `onUpgrade` is empty, so edits to `data.txt` only reach fresh installs. To reach existing installs, bump the version and implement `onUpgrade`.
-- Puzzle strings are 81 digits in row-major order, with `0` for an empty cell. The saved game (`Current.userEntered`) uses the same format with givens written as `0`; see `Board.entriesString()` and `Board.withEntries()`. Keep this format compatible so existing saved games still resume.
+- Puzzles ship as SQL statements in `app/src/main/assets/data.txt`, 150 each for easy, medium and hard. They build the original version 1 schema (`Puzzle`, `Current`, ...).
+- Room keeps the old file name, `SudroidDB`, at version 2. `MIGRATION_1_2` converts the version 1 tables into `puzzles` and `saved_game` and drops them. Fresh installs run `data.txt` and then the same conversion, so puzzle IDs match in both paths.
+- Edits to `data.txt` only reach fresh installs. To reach existing installs, bump the database version and add a migration. Room exports each schema to `app/schemas`; commit it.
+- Puzzle strings are 81 digits in row-major order, with `0` for an empty cell. The saved game (`saved_game.entries`, formerly `Current.userEntered`) uses the same format with givens written as `0`; see `Board.entriesString()` and `Board.withEntries()`. Keep this format compatible so existing saved games still resume.
 - `SolverTest` reads `data.txt`, whose path comes in through the `sudroid.puzzleData` system property, and requires every bundled puzzle to have exactly one solution.
 
 ## Gotchas
 
-- **Line endings:** `data.txt` must stay CRLF, because `SudroidDatabaseHelper` splits the statements on `\r\n`. Most Java files in `:app` are CRLF as well. Preserve each file's existing line endings when editing, since no `.gitattributes` enforces them.
-- **Old saves:** the old game wrote `resume` into `Current.difficulty` for resumed games and could store times such as `00:0-1`. Read the difficulty from the `Puzzle` table and parse times leniently (`parseElapsed`).
+- **Line endings:** `data.txt` is CRLF, as are most Java files in `:app`. The loader reads `data.txt` line by line, so either ending works, but keep it CRLF to match what old installs ran. Preserve each file's existing line endings when editing, since no `.gitattributes` enforces them.
+- **Old saves:** the old game wrote `resume` into `Current.difficulty` for resumed games and could store times such as `00:0-1`. `MIGRATION_1_2` takes the difficulty from the `Puzzle` table and parses times leniently (`parseElapsed`).
 - **Orientation:** Android 16 and later ignore `screenOrientation="portrait"` on large screens, so the menu and score screens rotate on tablets and foldables. The game screen is unlocked and has a landscape layout.
 
 ## Conventions

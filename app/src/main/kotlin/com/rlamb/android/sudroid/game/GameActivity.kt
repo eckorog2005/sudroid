@@ -27,8 +27,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rlamb.android.sudroid.GameModeEnum
 import com.rlamb.android.sudroid.SudroidHighScoreActivity
-import com.rlamb.android.sudroid.data.LegacyGameRepository
+import com.rlamb.android.sudroid.data.RoomGameRepository
 import com.rlamb.android.sudroid.ui.SudroidTheme
+import kotlinx.coroutines.MainScope
 
 class GameActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,12 +41,12 @@ class GameActivity : ComponentActivity() {
                 GameRequest.New(Difficulty.valueOf(mode.name.uppercase()))
             GameModeEnum.weekly -> error("The weekly puzzle is not implemented")
         }
-        val repository = LegacyGameRepository.get(this)
+        val repository = RoomGameRepository.get(this)
 
         setContent {
             SudroidTheme {
                 GameScreen(
-                    viewModel = viewModel { GameViewModel(repository, request) },
+                    viewModel = viewModel { GameViewModel(repository, request, saveScope) },
                     onSolved = { elapsedSeconds -> showScore(elapsedSeconds) },
                 )
             }
@@ -62,6 +63,8 @@ class GameActivity : ComponentActivity() {
     }
 
     companion object {
+        private val saveScope = MainScope()
+
         /** A [GameModeEnum] ordinal. */
         const val EXTRA_MODE = "com.rlamb.android.sudroid.game.mode"
     }

@@ -4,11 +4,11 @@ The plan for turning the 2012 app into a modern Android game, step by step. Tick
 
 ## Where we left off (2026-10-12)
 
-- Step 1 is merged. Step 2 is in progress on `feat/compose-game-screen`; 2.1 and 2.2 below are done.
+- Step 1 is merged. Step 2 is in progress on `feat/compose-game-screen`; 2.1 to 2.3 below are done.
 - Step 2 order:
   1. Done: add Compose, Lifecycle/ViewModel, Navigation and Room to the version catalog, plus the Kotlin Compose compiler plugin at the same Kotlin version (2.4.21).
   2. Done: build the game screen first: a `ViewModel` holding the engine `Board`, a `Canvas` board, the number pad, and the timer.
-  3. Move saving to Room by implementing `GameRepository`; autosave already happens after every move. Keep the existing 81-digit save format, or migrate the existing `Current` row, so in-progress games survive the upgrade. `LegacyGameRepository` shows the current schema.
+  3. Done: saving moved to Room (`RoomGameRepository`). A 1→2 migration on the same `SudroidDB` file converts the old tables, so in-progress games survive the upgrade (checked on the emulator by upgrading from `main`).
   4. Replace the menu and score screens, then delete the old Activities. `SudroidView` and the old game Activity are already gone.
 - Verify on the emulator: start, resume after force-stop, rotate mid-game, press Back mid-game, finish. Finishing must no longer crash.
 
@@ -28,7 +28,7 @@ Architecture:
 
 - [ ] One Activity with Compose Navigation (menu, game, results, stats)
 - [x] `ViewModel` holding a `StateFlow` of the game state
-- [ ] Room for saved games, with an autosave after every move
+- [x] Room for saved games, with an autosave after every move
 - [x] Board drawn with a Compose `Canvas`, sized from the screen instead of fixed pixels and the grid JPEG
 - [x] Timer as a coroutine tied to the screen lifecycle, replacing `java.util.Timer` and the Handler messages
 
@@ -40,7 +40,7 @@ Existing bugs this step fixes:
 - [x] Finishing a puzzle crashes with a `NullPointerException` at `mTimer.cancel()` and can open the score screen twice (confirmed on the emulator, on `main` as well)
 - [ ] "Back to Main" stacks a new menu instead of closing the screen
 - [x] `Thread.sleep(100)` blocks the main thread in the View constructor
-- [ ] Unclosed cursors, a database closed before its cursor is read, SQL built by string concatenation
+- [x] Unclosed cursors, a database closed before its cursor is read, SQL built by string concatenation
 
 ## 3. Core play features
 
@@ -69,4 +69,4 @@ Existing bugs this step fixes:
 
 - [ ] Pause screen that hides the board
 - [ ] Haptics on input, an animation when a row, column or box is completed, and a celebration on finishing
-- [ ] `.gitattributes` to keep CRLF line endings in `data.txt`, which the database loader splits on
+- [ ] `.gitattributes` to keep the CRLF line endings in `data.txt` and the Java files

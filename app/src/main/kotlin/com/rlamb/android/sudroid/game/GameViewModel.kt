@@ -23,6 +23,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rlamb.android.sudroid.engine.Board
 import com.rlamb.android.sudroid.engine.Cell
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,9 +43,11 @@ data class GameUiState(
     val isSolved: Boolean = board?.isSolved == true
 }
 
+/** [saveScope] must outlive the ViewModel, so the last save or delete lands after the screen closes. */
 class GameViewModel(
     private val repository: GameRepository,
     request: GameRequest,
+    saveScope: CoroutineScope,
 ) : ViewModel() {
     private val _state = MutableStateFlow(GameUiState())
     val state: StateFlow<GameUiState> = _state.asStateFlow()
@@ -62,11 +65,15 @@ class GameViewModel(
             val board = Board.fromPuzzle(puzzle.digits).let { if (saved != null) it.withEntries(saved.entries) else it }
             _state.value = GameUiState(board = board, elapsedSeconds = saved?.elapsedSeconds ?: 0)
         }
-        viewModelScope.launch {
+        saveScope.launch {
             for (game in pendingSaves) {
                 if (game == null) repository.deleteSavedGame() else repository.save(game)
             }
         }
+    }
+
+    override fun onCleared() {
+        pendingSaves.close()
     }
 
     fun select(cell: Cell) {

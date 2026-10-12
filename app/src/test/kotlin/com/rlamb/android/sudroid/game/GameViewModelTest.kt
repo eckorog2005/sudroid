@@ -22,6 +22,7 @@ package com.rlamb.android.sudroid.game
 import com.rlamb.android.sudroid.engine.Board
 import com.rlamb.android.sudroid.engine.Cell
 import com.rlamb.android.sudroid.engine.Solver
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewmodel.initializer
@@ -29,6 +30,8 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -81,7 +84,7 @@ class GameViewModelTest {
         val entries = EMPTY_ENTRIES.replaceRange(0, 1, "4")
         repository.saved = SavedGame(PUZZLE, entries, elapsedSeconds = 75)
 
-        val state = GameViewModel(repository, GameRequest.Resume, saveScope).state.value
+        val state = GameViewModel(repository, GameRequest.Resume, saveScope, SavedStateHandle()).state.value
 
         assertEquals(entries, assertNotNull(state.board).entriesString())
         assertEquals(75, state.elapsedSeconds)
@@ -89,10 +92,23 @@ class GameViewModelTest {
 
     @Test
     fun `resuming without a saved game starts a new easy game`() = runTest {
-        val state = GameViewModel(repository, GameRequest.Resume, saveScope).state.value
+        val state = GameViewModel(repository, GameRequest.Resume, saveScope, SavedStateHandle()).state.value
 
         assertEquals(EMPTY_ENTRIES, assertNotNull(state.board).entriesString())
         assertEquals(listOf(Difficulty.EASY), repository.requestedDifficulties)
+    }
+
+    @Test
+    fun `a new game restored after process death resumes its autosave`() = runTest {
+        val savedState = SavedStateHandle()
+        val first = GameViewModel(repository, GameRequest.New(Difficulty.HARD), saveScope, savedState)
+        first.select(Cell(0, 0))
+        first.enter(4)
+
+        val restored = GameViewModel(repository, GameRequest.New(Difficulty.HARD), saveScope, savedState)
+
+        assertEquals("4" + EMPTY_ENTRIES.drop(1), restored.state.value.board?.entriesString())
+        assertEquals(listOf(Difficulty.HARD), repository.requestedDifficulties)
     }
 
     @Test
@@ -160,7 +176,7 @@ class GameViewModelTest {
     @Test
     fun `the clock resumes from the saved time`() = runTest {
         repository.saved = SavedGame(PUZZLE, EMPTY_ENTRIES, elapsedSeconds = 75)
-        val viewModel = GameViewModel(repository, GameRequest.Resume, saveScope)
+        val viewModel = GameViewModel(repository, GameRequest.Resume, saveScope, SavedStateHandle())
 
         val clock = launch { viewModel.runClock() }
         advanceTimeBy(2_500)
@@ -221,12 +237,12 @@ class GameViewModelTest {
         assertEquals("4" + EMPTY_ENTRIES.drop(1), repository.saved?.entries)
     }
 
-    private fun newGame() = GameViewModel(repository, GameRequest.New(Difficulty.EASY), saveScope)
+    private fun newGame() = GameViewModel(repository, GameRequest.New(Difficulty.EASY), saveScope, SavedStateHandle())
 
     private fun oneMoveFromSolved(): Pair<GameViewModel, Cell> {
         val lastCell = Cell.ALL.first { !SOLUTION.isGiven(it) }
         repository.saved = SavedGame(PUZZLE, SOLUTION.clear(lastCell).entriesString(), elapsedSeconds = 10)
-        return GameViewModel(repository, GameRequest.Resume, saveScope) to lastCell
+        return GameViewModel(repository, GameRequest.Resume, saveScope, SavedStateHandle()) to lastCell
     }
 
     private companion object {
@@ -250,6 +266,8 @@ private class FakeGameRepository(private val puzzle: Puzzle) : GameRepository {
     }
 
     override suspend fun savedGame(): SavedGame? = saved
+
+    override fun hasSavedGame(): Flow<Boolean> = flowOf(saved != null)
 
     override suspend fun save(game: SavedGame) {
         saved = game

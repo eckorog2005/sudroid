@@ -1,20 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="hello">Hello World, SuDroid!</string>
     <string name="app_name">Sudroid</string>
-    <string name="name">Sudroid</string>
-    <string name="weeklyPuzzle">Coming Soon</string>
     <string name="easy">Easy</string>
     <string name="medium">Medium</string>
-    <string name="resume">Resume Game</string>
     <string name="hard">Hard</string>
+    <string name="resume">Resume Game</string>
     <string name="erase">Erase</string>
     <string name="reset">Reset</string>
-    <string name="message">You are currently placed at</string>
-    <string name="end_message">in this week\'s puzzle!!</string>
-    <string name="blank"></string>
-    <color name="black">#000000</color>
-    <string name="backMenu">Back to Main</string>
     <string name="final_message">You finished the puzzle with a time of:</string>
-    <color name="white">#ffffff</color>
+    <string name="backMenu">Back to Main</string>
 </resources>

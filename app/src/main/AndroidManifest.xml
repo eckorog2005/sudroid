@@ -4,24 +4,14 @@
     <application
         android:icon="@drawable/icon"
         android:label="@string/app_name"
-        android:theme="@android:style/Theme.Material">
+        android:theme="@android:style/Theme.Material.NoActionBar">
         <activity
             android:name=".SudroidActivity"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:screenOrientation="portrait">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".game.GameActivity"
-            android:exported="false"
-            android:theme="@android:style/Theme.Material.NoActionBar" />
-        <activity
-            android:name=".SudroidHighScoreActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
     </application>
 </manifest>

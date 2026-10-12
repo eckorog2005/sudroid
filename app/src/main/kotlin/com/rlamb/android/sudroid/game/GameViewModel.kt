@@ -19,6 +19,7 @@
 
 package com.rlamb.android.sudroid.game
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rlamb.android.sudroid.engine.Board
@@ -48,6 +49,7 @@ class GameViewModel(
     private val repository: GameRepository,
     request: GameRequest,
     saveScope: CoroutineScope,
+    private val savedState: SavedStateHandle,
 ) : ViewModel() {
     private val _state = MutableStateFlow(GameUiState())
     val state: StateFlow<GameUiState> = _state.asStateFlow()
@@ -59,11 +61,15 @@ class GameViewModel(
     private val pendingSaves = Channel<SavedGame?>(Channel.CONFLATED)
 
     init {
+        // After process death the screen comes back with its original request; a game that had
+        // already started must resume from its autosave instead of starting over.
+        val resume = request == GameRequest.Resume || savedState.get<Boolean>(STARTED) == true
         viewModelScope.launch {
-            val saved = (request as? GameRequest.Resume)?.let { repository.savedGame() }
+            val saved = if (resume) repository.savedGame() else null
             puzzle = saved?.puzzle ?: repository.randomPuzzle((request as? GameRequest.New)?.difficulty ?: Difficulty.EASY)
             val board = Board.fromPuzzle(puzzle.digits).let { if (saved != null) it.withEntries(saved.entries) else it }
             _state.value = GameUiState(board = board, elapsedSeconds = saved?.elapsedSeconds ?: 0)
+            savedState[STARTED] = true
         }
         saveScope.launch {
             for (game in pendingSaves) {
@@ -119,5 +125,9 @@ class GameViewModel(
         val board = current.board ?: return
         if (current.isSolved) return
         pendingSaves.trySend(SavedGame(puzzle, board.entriesString(), current.elapsedSeconds))
+    }
+
+    private companion object {
+        const val STARTED = "started"
     }
 }

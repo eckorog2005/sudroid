@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Sudroid is a GPL-3 Sudoku game for Android that started as a 2010-era Java app. It is being modernized in stages: game rules live in the Kotlin `:engine` module, the game screen is Kotlin and Jetpack Compose, and the remaining Java UI in `:app` is due to be rewritten.
+Sudroid is a GPL-3 Sudoku game for Android that started as a 2010-era Java app. It is being modernized in stages: game rules live in the Kotlin `:engine` module, and the app in `:app` is Kotlin and Jetpack Compose.
 
 The roadmap and its status are in `PROGRESS.md`. Read it before starting modernization work, and tick items there in the same PR that completes them.
 
@@ -20,11 +20,11 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
   - `Board` is immutable: every move returns a new board. Conflicts are worked out from the grid on each call, never stored.
   - `Cell` uses 0-based rows and columns.
   - `Solver` does bitmask backtracking: `solve`, `countSolutions` and `hasUniqueSolution`.
-  - While `:app` is still Java, make the public API callable from Java with `@JvmStatic`, `@JvmField` and `@JvmOverloads`.
-- `:app` mixes Kotlin (`src/main/kotlin`) and Java (`src/main/java`).
-  - `game.GameActivity` hosts the Compose `GameScreen`. `GameViewModel` holds a `StateFlow<GameUiState>`, autosaves after every move, and counts time in `runClock()`, which the screen runs only while resumed.
+- `:app` is Kotlin and Jetpack Compose, in `src/main/kotlin`.
+  - `SudroidActivity` is the only Activity; it keeps its original name so existing launcher shortcuts still work. `SudroidApp` runs Navigation 3 over the `Menu`, `Game(request)` and `Results(elapsedSeconds)` keys. Finishing a game replaces `Game` with `Results`, so Back never returns to a solved board.
+  - `GameViewModel` holds a `StateFlow<GameUiState>`, autosaves after every move, and counts time in `runClock()`, which the screen runs only while resumed.
   - Storage goes through the `GameRepository` interface, implemented by `data.RoomGameRepository` on the Room `SudroidDatabase`. Saves run in a process-wide scope passed to `GameViewModel`, so the last save or delete lands after the screen closes.
-  - The menu (`SudroidActivity`) and score screen (`SudroidHighScoreActivity`) are still Java Activities. The menu starts the game with a `GameModeEnum` ordinal in `GameActivity.EXTRA_MODE`.
+  - The back stack survives process death, so a restored `Game(New(...))` key would start over. `GameViewModel` marks the game as started in its `SavedStateHandle` and resumes the autosave instead.
 
 ## Puzzle data and saves
 
@@ -36,9 +36,9 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
 
 ## Gotchas
 
-- **Line endings:** `data.txt` is CRLF, as are most Java files in `:app`. The loader reads `data.txt` line by line, so either ending works, but keep it CRLF to match what old installs ran. Preserve each file's existing line endings when editing, since no `.gitattributes` enforces them.
+- **Line endings:** `data.txt` is CRLF. The loader reads `data.txt` line by line, so either ending works, but keep it CRLF to match what old installs ran. Preserve each file's existing line endings when editing, since no `.gitattributes` enforces them.
 - **Old saves:** the old game wrote `resume` into `Current.difficulty` for resumed games and could store times such as `00:0-1`. `MIGRATION_1_2` takes the difficulty from the `Puzzle` table and parses times leniently (`parseElapsed`).
-- **Orientation:** Android 16 and later ignore `screenOrientation="portrait"` on large screens, so the menu and score screens rotate on tablets and foldables. The game screen is unlocked and has a landscape layout.
+- **Orientation:** every screen rotates. The game screen has a separate landscape layout; the menu and results screens scroll if they don't fit.
 
 ## Conventions
 

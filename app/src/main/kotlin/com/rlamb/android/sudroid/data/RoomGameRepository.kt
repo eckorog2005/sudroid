@@ -20,16 +20,11 @@
 package com.rlamb.android.sudroid.data
 
 import android.content.Context
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import com.rlamb.android.sudroid.game.Difficulty
 import com.rlamb.android.sudroid.game.GameRepository
 import com.rlamb.android.sudroid.game.Puzzle
 import com.rlamb.android.sudroid.game.SavedGame
-import kotlinx.coroutines.launch
-import java.util.function.Consumer
+import kotlinx.coroutines.flow.Flow
 
 class RoomGameRepository(private val dao: GameDao) : GameRepository {
     override suspend fun randomPuzzle(difficulty: Difficulty): Puzzle =
@@ -38,19 +33,12 @@ class RoomGameRepository(private val dao: GameDao) : GameRepository {
     override suspend fun savedGame(): SavedGame? =
         dao.savedGame()?.let { SavedGame(it.puzzle.toPuzzle(), it.entries, it.elapsedSeconds) }
 
+    override fun hasSavedGame(): Flow<Boolean> = dao.hasSavedGame()
+
     override suspend fun save(game: SavedGame) =
         dao.save(SavedGameEntity(puzzleId = game.puzzle.id, entries = game.entries, elapsedSeconds = game.elapsedSeconds))
 
     override suspend fun deleteSavedGame() = dao.deleteSavedGame()
-
-    /** Reports whether a game can be resumed, while [owner] is started; callable from the Java menu. */
-    fun observeHasSavedGame(owner: LifecycleOwner, onChange: Consumer<Boolean>) {
-        owner.lifecycleScope.launch {
-            owner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                dao.hasSavedGame().collect { onChange.accept(it) }
-            }
-        }
-    }
 
     private fun PuzzleEntity.toPuzzle() = Puzzle(id, difficulty, digits)
 
@@ -59,7 +47,6 @@ class RoomGameRepository(private val dao: GameDao) : GameRepository {
         private var instance: RoomGameRepository? = null
 
         // One open database for the whole process; ViewModels come and go with each game.
-        @JvmStatic
         fun get(context: Context): RoomGameRepository =
             instance ?: synchronized(this) {
                 instance ?: RoomGameRepository(SudroidDatabase.build(context.applicationContext).gameDao())

@@ -19,6 +19,9 @@
 
 package com.rlamb.android.sudroid.game
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.Serializable
+
 enum class Difficulty { EASY, MEDIUM, HARD }
 
 /** [digits] is 81 digits in row-major order, with `0` for an empty cell. */
@@ -27,14 +30,19 @@ data class Puzzle(val id: Int, val difficulty: Difficulty, val digits: String)
 /** [entries] uses the format of `Board.entriesString()`. */
 data class SavedGame(val puzzle: Puzzle, val entries: String, val elapsedSeconds: Int)
 
+@Serializable
 sealed interface GameRequest {
+    @Serializable
     data class New(val difficulty: Difficulty) : GameRequest
+
+    @Serializable
     data object Resume : GameRequest
 }
 
 interface GameRepository {
     suspend fun randomPuzzle(difficulty: Difficulty): Puzzle
     suspend fun savedGame(): SavedGame?
+    fun hasSavedGame(): Flow<Boolean>
     suspend fun save(game: SavedGame)
     suspend fun deleteSavedGame()
 }

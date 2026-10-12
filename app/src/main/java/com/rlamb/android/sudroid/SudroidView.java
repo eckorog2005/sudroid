@@ -28,6 +28,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 import com.rlamb.android.sudroid.R;
 import com.rlamb.android.sudroid.SudroidGameActivity.ActivityHandler;
+import com.rlamb.android.sudroid.engine.Board;
+import com.rlamb.android.sudroid.engine.Cell;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
@@ -87,8 +89,8 @@ public class SudroidView extends View{
     //listener
     private ICellListener mCellListener;
     
-    //hightlighted position
-    private Position displayHighlighted;
+    //hightlighted cell, null when nothing is selected
+    private Cell selected;
     
     //offset values
     private int mSxy;
@@ -146,8 +148,6 @@ public class SudroidView extends View{
         this.mBmpPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mBmpPaint.setTextSize(40);
         
-        //make new highlight if needed.
-        this.displayHighlighted = new Position(-1,-1);
         mTimerLimit = -1;
 
         //load board from database
@@ -155,7 +155,7 @@ public class SudroidView extends View{
         db.checkWeeklyPuzzle();
         
         //initialize the board
-        this.sudoku = new Board();
+        this.sudoku = Board.EMPTY;
         
         // kick off the timer task for counter update if not already
         // initialized
@@ -183,26 +183,17 @@ public class SudroidView extends View{
 	
 	//clear the number that is highlighted if there
 	public void clearNumber(){
-		if(this.displayHighlighted.getCol() != -1){
-			this.sudoku.clearNumber(this.displayHighlighted);
+		if(this.selected != null){
+			this.sudoku = this.sudoku.clear(this.selected);
 			mHandler.sendEmptyMessageDelayed(MSG_CHANGE, FPS_MS);
 		}
 	}
-	
+
 	//add the number entered into the highlighted square
 	public void addNumber(int value){
-		if(this.displayHighlighted.getCol() != -1){
-			try {
-				this.sudoku.addNumber(value, this.displayHighlighted);
-			} catch (InvalidNumberValueException e) {
-			//never should get here
-			} catch (InvalidPositionLocationException e) {
-			//never should get here
-			} catch (InvalidSodokuPositionException e) {
-			//do nothing, taken care of later
-			}finally{
-				mHandler.sendEmptyMessageDelayed(MSG_CHANGE, FPS_MS);
-			}
+		if(this.selected != null){
+			this.sudoku = this.sudoku.place(this.selected, value);
+			mHandler.sendEmptyMessageDelayed(MSG_CHANGE, FPS_MS);
 		}
 	}
 
@@ -213,7 +204,7 @@ public class SudroidView extends View{
     
     //check if game is finished
     public boolean isFinished(){
-    	return this.sudoku.isFinished();	
+    	return this.sudoku.isSolved();
     }
     
     //draw new screen
@@ -227,30 +218,25 @@ public class SudroidView extends View{
          int y7 = this.mOffetY;
          
          //loop though each cell
-         for (int j = 0, y = y7; j < 9; j++, y += sxy) {
-             for (int i = 0, x = x7; i < 9; i++, x += sxy) {
-                 Cell tempNumber = this.sudoku.getCell(new Position(j+1,i+1));
-            	 mDstRect.offsetTo(MARGIN+x, MARGIN+y);
-            	 
-            	 //if a number draw the right sprite
-            	 if(tempNumber.getValue() != 0){
-            		 if(tempNumber.isInvalidSelection()){
-            			 this.mBmpPaint.setColor(Color.rgb(0, 150, 0));
-            			 canvas.drawText(Integer.valueOf(tempNumber.getValue()).toString(),MARGIN+x+15, MARGIN+y+40, this.mBmpPaint);
-            		 }else if(tempNumber.isError()){
-            			 this.mBmpPaint.setColor(Color.RED);
-            			 canvas.drawText(Integer.valueOf(tempNumber.getValue()).toString(),MARGIN+x+15, MARGIN+y+40, this.mBmpPaint);
-            		 }else{
-            			 this.mBmpPaint.setColor(Color.BLACK);
-            			 canvas.drawText(Integer.valueOf(tempNumber.getValue()).toString(),MARGIN+x+15, MARGIN+y+40, this.mBmpPaint);	 
-            		 }
-            	 }
-            	 
-            	 //draw the highlighted square if here
-                 if(this.displayHighlighted.getRow() == j+1 &&
-                		 this.displayHighlighted.getCol() == i+1){
-                	 canvas.drawBitmap(this.highlight, this.mSrcRect, this.mDstRect, this.mBmpPaint);
+         for (Cell cell : Cell.ALL) {
+             int x = x7 + cell.getCol() * sxy;
+             int y = y7 + cell.getRow() * sxy;
+             mDstRect.offsetTo(MARGIN+x, MARGIN+y);
+
+             int digit = this.sudoku.digitAt(cell);
+             if(digit != 0){
+                 if(this.sudoku.isGiven(cell)){
+                     this.mBmpPaint.setColor(Color.rgb(0, 150, 0));
+                 }else if(this.sudoku.hasConflict(cell)){
+                     this.mBmpPaint.setColor(Color.RED);
+                 }else{
+                     this.mBmpPaint.setColor(Color.BLACK);
                  }
+                 canvas.drawText(Integer.toString(digit), MARGIN+x+15, MARGIN+y+40, this.mBmpPaint);
+             }
+
+             if(cell.equals(this.selected)){
+                 canvas.drawBitmap(this.highlight, this.mSrcRect, this.mDstRect, this.mBmpPaint);
              }
          }
          if(this.isFinished()){
@@ -320,8 +306,7 @@ public class SudroidView extends View{
             if (this.isEnabled() && x >= 0 && x < 9 && y >= 0 & y < 9) {
                 this.mHighlightRect.set(MARGIN + x * sxy, MARGIN + y * sxy,
                                MARGIN + (x + 1) * sxy, MARGIN + (y + 1) * sxy);
-                this.displayHighlighted.setRow(y+1);
-                this.displayHighlighted.setCol(x+1);
+                this.selected = new Cell(y, x);
                 
                 if (mCellListener != null) {
                     mCellListener.onCellSelected();
@@ -350,7 +335,7 @@ public class SudroidView extends View{
     	values.put("_id", this.id);
     	values.put("time", this.changeTimeToString());
     	values.put("difficulty", this.gameType.name());
-    	values.put("userEntered", this.sudoku.getUserEnteredString());
+    	values.put("userEntered", this.sudoku.entriesString());
     	db.insert("Current", null, values);
     	db.close();
         return b;
@@ -541,33 +526,8 @@ public class SudroidView extends View{
 	 * @param board board data to fill in
 	 */
 	public void fillBoard(String board) {
-		int counter = 0;
-		if(board != null && 
-				board.length() == 
-					this.sudoku.getSize() * this.sudoku.getSize()){
-			for(int i = 1; i <= this.sudoku.getSize(); i++){
-				for(int j = 1; j <= this.sudoku.getSize(); j++){
-					if(board.charAt(counter) != '0'){
-						try {
-							this.sudoku.addNumber(Integer.parseInt(
-									board.substring(counter, counter + 1)), 
-									new Position(i,j));
-							this.sudoku.getCell(new Position(i,j)).
-									setInvalidSelection(true);
-						} catch (InvalidNumberValueException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						} catch (InvalidPositionLocationException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						} catch (InvalidSodokuPositionException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					}
-					counter++;
-				}
-			}
+		if(board != null && board.length() == Board.SIZE * Board.SIZE){
+			this.sudoku = Board.fromPuzzle(board);
 		}
 	}
 
@@ -575,15 +535,7 @@ public class SudroidView extends View{
 	 * reset the whole board
 	 */
 	public void resetBoard() {
-		for(int x = 1; x <= this.sudoku.getSize(); x++){
-			for(int y = 1; y <= this.sudoku.getSize(); y++){
-				Position pos = new Position(x, y);
-				Cell cell = this.sudoku.getCell(pos);
-				if(!cell.isInvalidSelection()){
-					this.sudoku.clearNumber(pos);
-				}
-			}
-		}
+		this.sudoku = this.sudoku.reset();
 		mHandler.sendEmptyMessageDelayed(MSG_CHANGE, FPS_MS);
 	}
 
@@ -611,31 +563,8 @@ public class SudroidView extends View{
 	 * @param board board data
 	 */
 	public void fillUserBoard(String board) {
-		int counter = 0;
-		if(board != null && 
-				board.length() == 
-					this.sudoku.getSize() * this.sudoku.getSize()){
-			for(int i = 1; i <= this.sudoku.getSize(); i++){
-				for(int j = 1; j <= this.sudoku.getSize(); j++){
-					if(board.charAt(counter) != '0'){
-						try {
-							this.sudoku.addNumber(Integer.parseInt(
-									board.substring(counter, counter + 1)), 
-									new Position(i,j));
-						} catch (InvalidNumberValueException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						} catch (InvalidPositionLocationException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						} catch (InvalidSodokuPositionException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					}
-					counter++;
-				}
-			}
+		if(board != null && board.length() == Board.SIZE * Board.SIZE){
+			this.sudoku = this.sudoku.withEntries(board);
 		}
 	}
 }

@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Sudroid"
 include(":app")
+include(":engine")

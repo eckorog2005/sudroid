@@ -31,6 +31,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
 
+import com.rlamb.android.sudroid.game.GameActivity;
+
 /**
  * This class displays the main menu to the user.
  * 
@@ -90,16 +92,17 @@ public class SudroidActivity extends Activity {
                 startGame(GameModeEnum.resume);
             }
         });
-        
-        SudroidDatabaseHelper helper = 
-        	new SudroidDatabaseHelper(this);
+    }
+
+    // Checked on every resume because leaving a game saves it and finishing one deletes it.
+    @Override
+    protected void onResume() {
+    	super.onResume();
+    	SudroidDatabaseHelper helper = new SudroidDatabaseHelper(this);
     	SQLiteDatabase db = helper.getReadableDatabase();
     	Cursor cursor = db.query("Current", new String[]{"_id"}, null, null, null, null, null);
-    	if(cursor.moveToNext()){
-    		findViewById(R.id.resume).setEnabled(true);
-    	}else{
-    		findViewById(R.id.resume).setEnabled(false);
-    	}
+    	findViewById(R.id.resume).setEnabled(cursor.moveToNext());
+    	cursor.close();
     	db.close();
     }
 
@@ -129,8 +132,8 @@ public class SudroidActivity extends Activity {
         		}
         	}
         }
-        i = new Intent(this, SudroidGameActivity.class);
-        i.putExtra(SudroidGameActivity.mode,
+        i = new Intent(this, GameActivity.class);
+        i.putExtra(GameActivity.EXTRA_MODE,
                 mode.ordinal());
         startActivity(i);	
 	}

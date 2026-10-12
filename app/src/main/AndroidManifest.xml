@@ -16,9 +16,9 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".SudroidGameActivity"
+            android:name=".game.GameActivity"
             android:exported="false"
-            android:screenOrientation="portrait" />
+            android:theme="@android:style/Theme.Material.NoActionBar" />
         <activity
             android:name=".SudroidHighScoreActivity"
             android:exported="false"

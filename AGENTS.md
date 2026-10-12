@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Sudroid is a GPL-3 Sudoku game for Android that started as a 2010-era Java app. It is being modernized in stages: game rules live in the Kotlin `:engine` module, and the Java UI in `:app` is due to be rewritten in Kotlin and Jetpack Compose.
+Sudroid is a GPL-3 Sudoku game for Android that started as a 2010-era Java app. It is being modernized in stages: game rules live in the Kotlin `:engine` module, the game screen is Kotlin and Jetpack Compose, and the remaining Java UI in `:app` is due to be rewritten.
 
 The roadmap and its status are in `PROGRESS.md`. Read it before starting modernization work, and tick items there in the same PR that completes them.
 
@@ -10,7 +10,8 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
 - A single test: `./gradlew :engine:test --tests 'com.rlamb.android.sudroid.engine.BoardTest.reset*'`. Test names contain spaces, so match them with a wildcard.
 - `./gradlew assembleDebug assembleRelease lint` builds both variants and lints. Only the release build runs R8 minification.
 - `./gradlew installDebug` installs on a connected device or emulator.
-- Building needs JDK 17 or newer. `:app` has no tests yet.
+- `./gradlew :app:testDebugUnitTest` runs the `:app` JVM unit tests, such as `GameViewModelTest`.
+- Building needs JDK 17 or newer.
 
 ## Modules
 
@@ -19,7 +20,10 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
   - `Cell` uses 0-based rows and columns.
   - `Solver` does bitmask backtracking: `solve`, `countSolutions` and `hasUniqueSolution`.
   - While `:app` is still Java, make the public API callable from Java with `@JvmStatic`, `@JvmField` and `@JvmOverloads`.
-- `:app` is Java: three Activities (menu, game, score) and `SudroidView`, a custom `View`. The view holds the current `Board`, draws it on a `Canvas`, runs the timer, and checks for a win inside `onDraw`.
+- `:app` mixes Kotlin (`src/main/kotlin`) and Java (`src/main/java`).
+  - `game.GameActivity` hosts the Compose `GameScreen`. `GameViewModel` holds a `StateFlow<GameUiState>`, autosaves after every move, and counts time in `runClock()`, which the screen runs only while resumed.
+  - Storage goes through the `GameRepository` interface. `data.LegacyGameRepository` implements it on the original SQLite schema until Room replaces it.
+  - The menu (`SudroidActivity`) and score screen (`SudroidHighScoreActivity`) are still Java Activities. The menu starts the game with a `GameModeEnum` ordinal in `GameActivity.EXTRA_MODE`.
 
 ## Puzzle data and saves
 
@@ -31,9 +35,8 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
 ## Gotchas
 
 - **Line endings:** `data.txt` must stay CRLF, because `SudroidDatabaseHelper` splits the statements on `\r\n`. Most Java files in `:app` are CRLF as well. Preserve each file's existing line endings when editing, since no `.gitattributes` enforces them.
-- **Saving:** the game is saved only through `SudroidView.onSaveInstanceState`; `saveGame()` is empty. As a result, pressing Back loses progress, and any configuration change (rotation, toggling dark mode) starts a new puzzle.
-- **Crash on finish:** finishing a puzzle crashes with a `NullPointerException` at `mTimer.cancel()`. The win check in `onDraw` keeps running after `pauseTimer()` has set `mTimer` to null, and it can also open the score screen twice. This bug predates the engine port, so expect it during on-device testing.
-- **Orientation:** Android 16 and later ignore `screenOrientation="portrait"` on large screens, so the game rotates on tablets and foldables.
+- **Old saves:** the old game wrote `resume` into `Current.difficulty` for resumed games and could store times such as `00:0-1`. Read the difficulty from the `Puzzle` table and parse times leniently (`parseElapsed`).
+- **Orientation:** Android 16 and later ignore `screenOrientation="portrait"` on large screens, so the menu and score screens rotate on tablets and foldables. The game screen is unlocked and has a landscape layout.
 
 ## Conventions
 

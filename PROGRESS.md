@@ -2,16 +2,15 @@
 
 The plan for turning the 2012 app into a modern Android game, step by step. Tick items as their PRs merge and link the PR.
 
-## Where we left off (2026-10-11)
+## Where we left off (2026-10-12)
 
-- Step 1 is merged and `main` is up to date with it.
-- `AGENTS.md`, `CLAUDE.md` and this file are committed.
-- Start step 2. Suggested order:
-  1. Add Compose, Lifecycle/ViewModel, Navigation and Room to the version catalog, plus the Kotlin Compose compiler plugin at the same Kotlin version (2.4.21).
-  2. Build the game screen first: a `ViewModel` holding the engine `Board`, a `Canvas` board, the number pad, and the timer.
-  3. Move saving to Room with an autosave after every move. Keep the existing 81-digit save format, or migrate the existing `Current` row, so in-progress games survive the upgrade.
-  4. Replace the menu and score screens, then delete the old Activities and `SudroidView`.
-- Verify on the emulator: start, resume after force-stop, rotate mid-game, press Back mid-game, finish. Finishing must no longer crash.
+- Step 1 is merged. Step 2 is complete on `feat/compose-game-screen`, in review as [#4](https://github.com/eckorog2005/sudroid/pull/4). Step 3 is next.
+- Step 2 order:
+  1. Done: add Compose, Lifecycle/ViewModel, Navigation and Room to the version catalog, plus the Kotlin Compose compiler plugin at the same Kotlin version (2.4.21).
+  2. Done: build the game screen first: a `ViewModel` holding the engine `Board`, a `Canvas` board, the number pad, and the timer.
+  3. Done: saving moved to Room (`RoomGameRepository`). A 1→2 migration on the same `SudroidDB` file converts the old tables, so in-progress games survive the upgrade (checked on the emulator by upgrading from `main`).
+  4. Done: one `SudroidActivity` with Navigation 3 over the Compose menu, game and results screens. All Java and XML layouts are gone.
+- Verified on the emulator: start, rotate mid-game, Back mid-game and Resume, process death (from Recents), finish, Back to Main, and Back from the menu exits.
 
 ## 1. Port the engine to Kotlin with tests: done
 
@@ -23,25 +22,27 @@ Merged 2026-10-11 in [#2](https://github.com/eckorog2005/sudroid/pull/2).
 - [x] Fixed: a stale conflict flag could stop a correctly filled board from registering as finished
 - [x] Played through on an Android 17 emulator
 
-## 2. Game screen in Compose with a ViewModel and Room: next
+## 2. Game screen in Compose with a ViewModel and Room: done, in review
+
+In review in [#4](https://github.com/eckorog2005/sudroid/pull/4).
 
 Architecture:
 
-- [ ] One Activity with Compose Navigation (menu, game, results, stats)
-- [ ] `ViewModel` holding a `StateFlow` of the game state
-- [ ] Room for saved games, with an autosave after every move
-- [ ] Board drawn with a Compose `Canvas`, sized from the screen instead of fixed pixels and the grid JPEG
-- [ ] Timer as a coroutine tied to the screen lifecycle, replacing `java.util.Timer` and the Handler messages
+- [x] One Activity with Compose Navigation (menu, game, results; stats arrives with step 5)
+- [x] `ViewModel` holding a `StateFlow` of the game state
+- [x] Room for saved games, with an autosave after every move
+- [x] Board drawn with a Compose `Canvas`, sized from the screen instead of fixed pixels and the grid JPEG
+- [x] Timer as a coroutine tied to the screen lifecycle, replacing `java.util.Timer` and the Handler messages
 
 Existing bugs this step fixes:
 
-- [ ] Any configuration change (rotation, dark mode, window resize) starts a new puzzle
-- [ ] Pressing Back loses progress (`saveGame()` is empty)
-- [ ] A finished puzzle can come back as "Resume"
-- [ ] Finishing a puzzle crashes with a `NullPointerException` at `mTimer.cancel()` and can open the score screen twice (confirmed on the emulator, on `main` as well)
-- [ ] "Back to Main" stacks a new menu instead of closing the screen
-- [ ] `Thread.sleep(100)` blocks the main thread in the View constructor
-- [ ] Unclosed cursors, a database closed before its cursor is read, SQL built by string concatenation
+- [x] Any configuration change (rotation, dark mode, window resize) starts a new puzzle
+- [x] Pressing Back loses progress (`saveGame()` is empty)
+- [x] A finished puzzle can come back as "Resume"
+- [x] Finishing a puzzle crashes with a `NullPointerException` at `mTimer.cancel()` and can open the score screen twice (confirmed on the emulator, on `main` as well)
+- [x] "Back to Main" stacks a new menu instead of closing the screen
+- [x] `Thread.sleep(100)` blocks the main thread in the View constructor
+- [x] Unclosed cursors, a database closed before its cursor is read, SQL built by string concatenation
 
 ## 3. Core play features
 
@@ -70,4 +71,4 @@ Existing bugs this step fixes:
 
 - [ ] Pause screen that hides the board
 - [ ] Haptics on input, an animation when a row, column or box is completed, and a celebration on finishing
-- [ ] `.gitattributes` to keep CRLF line endings in `data.txt`, which the database loader splits on
+- [ ] `.gitattributes` to keep the CRLF line endings in `data.txt`

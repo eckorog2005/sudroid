@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Sudroid is a GPL-3 Sudoku game for Android that started as a 2010-era Java app. It is being modernized in stages: game rules live in the Kotlin `:engine` module, and the Java UI in `:app` is due to be rewritten in Kotlin and Jetpack Compose.
+Sudroid is a GPL-3 Sudoku game for Android that started as a 2010-era Java app. It is being modernized in stages: game rules live in the Kotlin `:engine` module, and the app in `:app` is Kotlin and Jetpack Compose.
 
 The roadmap and its status are in `PROGRESS.md`. Read it before starting modernization work, and tick items there in the same PR that completes them.
 
@@ -10,7 +10,9 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
 - A single test: `./gradlew :engine:test --tests 'com.rlamb.android.sudroid.engine.BoardTest.reset*'`. Test names contain spaces, so match them with a wildcard.
 - `./gradlew assembleDebug assembleRelease lint` builds both variants and lints. Only the release build runs R8 minification.
 - `./gradlew installDebug` installs on a connected device or emulator.
-- Building needs JDK 17 or newer. `:app` has no tests yet.
+- `./gradlew :app:testDebugUnitTest` runs the `:app` JVM unit tests, such as `GameViewModelTest`.
+- `./gradlew :app:connectedDebugAndroidTest` runs the instrumented tests, such as `SudroidDatabaseTest`, on a connected device or emulator.
+- Building needs JDK 17 or newer.
 
 ## Modules
 
@@ -18,22 +20,25 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
   - `Board` is immutable: every move returns a new board. Conflicts are worked out from the grid on each call, never stored.
   - `Cell` uses 0-based rows and columns.
   - `Solver` does bitmask backtracking: `solve`, `countSolutions` and `hasUniqueSolution`.
-  - While `:app` is still Java, make the public API callable from Java with `@JvmStatic`, `@JvmField` and `@JvmOverloads`.
-- `:app` is Java: three Activities (menu, game, score) and `SudroidView`, a custom `View`. The view holds the current `Board`, draws it on a `Canvas`, runs the timer, and checks for a win inside `onDraw`.
+- `:app` is Kotlin and Jetpack Compose, in `src/main/kotlin`.
+  - `SudroidActivity` is the only Activity; it keeps its original name so existing launcher shortcuts still work. `SudroidApp` runs Navigation 3 over the `Menu`, `Game(request)` and `Results(elapsedSeconds)` keys. Finishing a game replaces `Game` with `Results`, so Back never returns to a solved board.
+  - `GameViewModel` holds a `StateFlow<GameUiState>`, autosaves after every move, and counts time in `runClock()`, which the screen runs only while resumed.
+  - Storage goes through the `GameRepository` interface, implemented by `data.RoomGameRepository` on the Room `SudroidDatabase`. Saves run in a process-wide scope passed to `GameViewModel`, so the last save or delete lands after the screen closes.
+  - The back stack survives process death, so a restored `Game(New(...))` key would start over. `GameViewModel` marks the game as started in its `SavedStateHandle` and resumes the autosave instead.
 
 ## Puzzle data and saves
 
-- Puzzles ship as SQL statements in `app/src/main/assets/data.txt`, 150 each for easy, medium and hard. `SudroidDatabaseHelper.onCreate` runs them on first launch.
-- The database is at version 1 and `onUpgrade` is empty, so edits to `data.txt` only reach fresh installs. To reach existing installs, bump the version and implement `onUpgrade`.
-- Puzzle strings are 81 digits in row-major order, with `0` for an empty cell. The saved game (`Current.userEntered`) uses the same format with givens written as `0`; see `Board.entriesString()` and `Board.withEntries()`. Keep this format compatible so existing saved games still resume.
+- Puzzles ship as SQL statements in `app/src/main/assets/data.txt`, 150 each for easy, medium and hard. They build the original version 1 schema (`Puzzle`, `Current`, ...).
+- Room keeps the old file name, `SudroidDB`, at version 2. `MIGRATION_1_2` converts the version 1 tables into `puzzles` and `saved_game` and drops them. Fresh installs run `data.txt` and then the same conversion, so puzzle IDs match in both paths.
+- Edits to `data.txt` only reach fresh installs. To reach existing installs, bump the database version and add a migration. Room exports each schema to `app/schemas`; commit it.
+- Puzzle strings are 81 digits in row-major order, with `0` for an empty cell. The saved game (`saved_game.entries`, formerly `Current.userEntered`) uses the same format with givens written as `0`; see `Board.entriesString()` and `Board.withEntries()`. Keep this format compatible so existing saved games still resume.
 - `SolverTest` reads `data.txt`, whose path comes in through the `sudroid.puzzleData` system property, and requires every bundled puzzle to have exactly one solution.
 
 ## Gotchas
 
-- **Line endings:** `data.txt` must stay CRLF, because `SudroidDatabaseHelper` splits the statements on `\r\n`. Most Java files in `:app` are CRLF as well. Preserve each file's existing line endings when editing, since no `.gitattributes` enforces them.
-- **Saving:** the game is saved only through `SudroidView.onSaveInstanceState`; `saveGame()` is empty. As a result, pressing Back loses progress, and any configuration change (rotation, toggling dark mode) starts a new puzzle.
-- **Crash on finish:** finishing a puzzle crashes with a `NullPointerException` at `mTimer.cancel()`. The win check in `onDraw` keeps running after `pauseTimer()` has set `mTimer` to null, and it can also open the score screen twice. This bug predates the engine port, so expect it during on-device testing.
-- **Orientation:** Android 16 and later ignore `screenOrientation="portrait"` on large screens, so the game rotates on tablets and foldables.
+- **Line endings:** `data.txt` is CRLF. The loader reads `data.txt` line by line, so either ending works, but keep it CRLF to match what old installs ran. Preserve each file's existing line endings when editing, since no `.gitattributes` enforces them.
+- **Old saves:** the old game wrote `resume` into `Current.difficulty` for resumed games and could store times such as `00:0-1`. `MIGRATION_1_2` takes the difficulty from the `Puzzle` table and parses times leniently (`parseElapsed`).
+- **Orientation:** every screen rotates. The game screen has a separate landscape layout; the menu and results screens scroll if they don't fit.
 
 ## Conventions
 

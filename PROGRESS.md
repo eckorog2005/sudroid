@@ -4,7 +4,7 @@ The plan for turning the 2012 app into a modern Android game, step by step. Tick
 
 ## Where we left off (2026-10-12)
 
-- Step 1 is merged. Step 2 is complete on `feat/compose-game-screen` and ready for a PR. Step 3 is next.
+- Step 1 is merged. Step 2 is complete on `feat/compose-game-screen`, in review as [#4](https://github.com/eckorog2005/sudroid/pull/4). Step 3 is next.
 - Step 2 order:
   1. Done: add Compose, Lifecycle/ViewModel, Navigation and Room to the version catalog, plus the Kotlin Compose compiler plugin at the same Kotlin version (2.4.21).
   2. Done: build the game screen first: a `ViewModel` holding the engine `Board`, a `Canvas` board, the number pad, and the timer.
@@ -22,7 +22,9 @@ Merged 2026-10-11 in [#2](https://github.com/eckorog2005/sudroid/pull/2).
 - [x] Fixed: a stale conflict flag could stop a correctly filled board from registering as finished
 - [x] Played through on an Android 17 emulator
 
-## 2. Game screen in Compose with a ViewModel and Room: done, PR pending
+## 2. Game screen in Compose with a ViewModel and Room: done, in review
+
+In review in [#4](https://github.com/eckorog2005/sudroid/pull/4).
 
 Architecture:
 

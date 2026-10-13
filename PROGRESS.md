@@ -4,13 +4,10 @@ The plan for turning the 2012 app into a modern Android game, step by step. Tick
 
 ## Where we left off (2026-10-12)
 
-- Step 1 is merged. Step 2 is complete on `feat/compose-game-screen`, in review as [#4](https://github.com/eckorog2005/sudroid/pull/4). Step 3 is next.
-- Step 2 order:
-  1. Done: add Compose, Lifecycle/ViewModel, Navigation and Room to the version catalog, plus the Kotlin Compose compiler plugin at the same Kotlin version (2.4.21).
-  2. Done: build the game screen first: a `ViewModel` holding the engine `Board`, a `Canvas` board, the number pad, and the timer.
-  3. Done: saving moved to Room (`RoomGameRepository`). A 1→2 migration on the same `SudroidDB` file converts the old tables, so in-progress games survive the upgrade (checked on the emulator by upgrading from `main`).
-  4. Done: one `SudroidActivity` with Navigation 3 over the Compose menu, game and results screens. All Java and XML layouts are gone.
-- Verified on the emulator: start, rotate mid-game, Back mid-game and Resume, process death (from Recents), finish, Back to Main, and Back from the menu exits.
+- Steps 1 and 2 are merged. Step 3 is in progress, one branch per feature:
+  1. Done on `feat/core-play-features`: undo and redo, held in memory by `GameViewModel` (the history is lost when the game screen closes).
+  2. Next, on `feat/pencil-marks`: notes, saved in a new `saved_game.notes` column with a Room 2→3 migration so `entries` keeps its format.
+  3. Then highlighting and number pad counts, which only change the UI, and mistake modes last, since they need a setting.
 
 ## 1. Port the engine to Kotlin with tests: done
 
@@ -22,9 +19,9 @@ Merged 2026-10-11 in [#2](https://github.com/eckorog2005/sudroid/pull/2).
 - [x] Fixed: a stale conflict flag could stop a correctly filled board from registering as finished
 - [x] Played through on an Android 17 emulator
 
-## 2. Game screen in Compose with a ViewModel and Room: done, in review
+## 2. Game screen in Compose with a ViewModel and Room: done
 
-In review in [#4](https://github.com/eckorog2005/sudroid/pull/4).
+Merged 2026-10-12 in [#4](https://github.com/eckorog2005/sudroid/pull/4).
 
 Architecture:
 
@@ -47,7 +44,7 @@ Existing bugs this step fixes:
 ## 3. Core play features
 
 - [ ] Pencil marks (notes), cleared automatically when a digit is placed in the same row, column or box
-- [ ] Undo and redo (also makes Reset safe; it currently has no confirmation)
+- [x] Undo and redo (also makes Reset safe; it currently has no confirmation)
 - [ ] Highlight the selected cell's row, column and box, and every cell with the same digit
 - [ ] Number pad shows how many of each digit are left and dims finished digits
 - [ ] Mistake modes: show immediately, only on request, or never; mark errors with a shape as well as color

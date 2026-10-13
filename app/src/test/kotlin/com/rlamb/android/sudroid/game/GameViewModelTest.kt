@@ -161,6 +161,66 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `undo restores the board before the last move and saves it`() = runTest {
+        val viewModel = newGame()
+        viewModel.select(Cell(0, 0))
+        viewModel.enter(4)
+        viewModel.enter(7)
+
+        viewModel.undo()
+
+        assertEquals(4, viewModel.state.value.board?.digitAt(Cell(0, 0)))
+        assertEquals("4" + EMPTY_ENTRIES.drop(1), repository.saved?.entries)
+        assertTrue(viewModel.state.value.canUndo)
+        assertTrue(viewModel.state.value.canRedo)
+    }
+
+    @Test
+    fun `undo brings back the entries a reset removed`() = runTest {
+        val viewModel = newGame()
+        viewModel.select(Cell(0, 0))
+        viewModel.enter(4)
+        viewModel.reset()
+
+        viewModel.undo()
+
+        assertEquals(4, viewModel.state.value.board?.digitAt(Cell(0, 0)))
+    }
+
+    @Test
+    fun `redo replays undone moves until a new move discards them`() = runTest {
+        val viewModel = newGame()
+        viewModel.select(Cell(0, 0))
+        viewModel.enter(4)
+        viewModel.enter(7)
+        viewModel.undo()
+        viewModel.undo()
+
+        viewModel.redo()
+        assertEquals(4, viewModel.state.value.board?.digitAt(Cell(0, 0)))
+
+        viewModel.enter(9)
+        viewModel.redo()
+        assertEquals(9, viewModel.state.value.board?.digitAt(Cell(0, 0)))
+        assertFalse(viewModel.state.value.canRedo)
+    }
+
+    @Test
+    fun `undo and redo do nothing without history`() = runTest {
+        val viewModel = newGame()
+        viewModel.select(Cell(0, 0))
+        viewModel.enter(4)
+        viewModel.enter(4)
+
+        viewModel.redo()
+        viewModel.undo()
+        viewModel.undo()
+
+        assertEquals(EMPTY_ENTRIES, viewModel.state.value.board?.entriesString())
+        assertFalse(viewModel.state.value.canUndo)
+    }
+
+    @Test
     fun `the clock counts seconds while it runs and saves the time when it stops`() = runTest {
         val viewModel = newGame()
 
@@ -208,6 +268,7 @@ class GameViewModelTest {
 
         viewModel.erase()
         viewModel.reset()
+        viewModel.undo()
 
         assertTrue(viewModel.state.value.isSolved)
         assertNull(repository.saved)

@@ -40,6 +40,8 @@ data class GameUiState(
     val board: Board? = null,
     val selected: Cell? = null,
     val elapsedSeconds: Int = 0,
+    val canUndo: Boolean = false,
+    val canRedo: Boolean = false,
 ) {
     val isSolved: Boolean = board?.isSolved == true
 }
@@ -55,6 +57,8 @@ class GameViewModel(
     val state: StateFlow<GameUiState> = _state.asStateFlow()
 
     private lateinit var puzzle: Puzzle
+    private val undoStack = ArrayDeque<Board>()
+    private val redoStack = ArrayDeque<Board>()
 
     // A conflated channel drained by one coroutine keeps writes in order and skips stale ones;
     // null means the game is over and the save should be deleted.
@@ -92,6 +96,10 @@ class GameViewModel(
 
     fun reset() = move { it.reset() }
 
+    fun undo() = step(from = undoStack, to = redoStack)
+
+    fun redo() = step(from = redoStack, to = undoStack)
+
     /** Counts up once a second until the puzzle is solved; run it only while the screen is visible. */
     suspend fun runClock() {
         state.first { it.board != null }
@@ -116,7 +124,20 @@ class GameViewModel(
         if (current.isSolved) return
         val next = change(board)
         if (next === board) return
-        _state.value = current.copy(board = next)
+        undoStack.addLast(board)
+        redoStack.clear()
+        show(next)
+    }
+
+    private fun step(from: ArrayDeque<Board>, to: ArrayDeque<Board>) {
+        val board = state.value.board ?: return
+        if (state.value.isSolved || from.isEmpty()) return
+        to.addLast(board)
+        show(from.removeLast())
+    }
+
+    private fun show(board: Board) {
+        _state.update { it.copy(board = board, canUndo = undoStack.isNotEmpty(), canRedo = redoStack.isNotEmpty()) }
         if (_state.value.isSolved) pendingSaves.trySend(null) else save()
     }
 

@@ -77,6 +77,8 @@ fun GameScreen(viewModel: GameViewModel, onSolved: (elapsedSeconds: Int) -> Unit
         onDigit = viewModel::enter,
         onErase = viewModel::erase,
         onReset = viewModel::reset,
+        onUndo = viewModel::undo,
+        onRedo = viewModel::redo,
     )
 }
 
@@ -87,6 +89,8 @@ private fun GameContent(
     onDigit: (Int) -> Unit,
     onErase: () -> Unit,
     onReset: () -> Unit,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
 ) {
     Scaffold { insets ->
         BoxWithConstraints(
@@ -102,7 +106,7 @@ private fun GameContent(
                 SudokuBoard(board, state.selected, onSelect, modifier)
             }
             val controls = @Composable { modifier: Modifier ->
-                Controls(state.elapsedSeconds, onDigit, onErase, onReset, modifier)
+                Controls(state, onDigit, onErase, onReset, onUndo, onRedo, modifier)
             }
             if (maxWidth > maxHeight) {
                 Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -178,14 +182,16 @@ private fun SudokuBoard(board: Board, selected: Cell?, onSelect: (Cell) -> Unit,
 
 @Composable
 private fun Controls(
-    elapsedSeconds: Int,
+    state: GameUiState,
     onDigit: (Int) -> Unit,
     onErase: () -> Unit,
     onReset: () -> Unit,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
     modifier: Modifier,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(formatElapsed(elapsedSeconds), style = MaterialTheme.typography.titleLarge)
+        Text(formatElapsed(state.elapsedSeconds), style = MaterialTheme.typography.titleLarge)
         for (digits in listOf(1..5, 6..9)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (digit in digits) {
@@ -200,7 +206,11 @@ private fun Controls(
                 }
             }
         }
-        OutlinedButton(onClick = onReset) { Text(stringResource(R.string.reset)) }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = onUndo, enabled = state.canUndo) { Text(stringResource(R.string.undo)) }
+            OutlinedButton(onClick = onRedo, enabled = state.canRedo) { Text(stringResource(R.string.redo)) }
+            OutlinedButton(onClick = onReset) { Text(stringResource(R.string.reset)) }
+        }
     }
 }
 
@@ -213,6 +223,6 @@ private fun GameContentPreview() {
         .place(Cell(0, 0), 9)
         .place(Cell(1, 1), 7)
     SudroidTheme {
-        GameContent(GameUiState(board, selected = Cell(1, 1), elapsedSeconds = 83), {}, {}, {}, {})
+        GameContent(GameUiState(board, selected = Cell(1, 1), elapsedSeconds = 83, canUndo = true), {}, {}, {}, {}, {}, {})
     }
 }

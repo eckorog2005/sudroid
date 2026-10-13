@@ -30,7 +30,7 @@ data class Cell(val row: Int, val col: Int) {
 
     internal val box: Int get() = (row / BOX_SIZE) * BOX_SIZE + col / BOX_SIZE
 
-    internal val peers: List<Cell> get() = PEERS[index]
+    val peers: List<Cell> get() = PEERS[index]
 
     companion object {
         internal const val BOX_SIZE = 3

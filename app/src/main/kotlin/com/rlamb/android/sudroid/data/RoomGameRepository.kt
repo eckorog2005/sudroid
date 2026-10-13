@@ -31,12 +31,18 @@ class RoomGameRepository(private val dao: GameDao) : GameRepository {
         checkNotNull(dao.randomPuzzle(difficulty)) { "No $difficulty puzzles in the database" }.toPuzzle()
 
     override suspend fun savedGame(): SavedGame? =
-        dao.savedGame()?.let { SavedGame(it.puzzle.toPuzzle(), it.entries, it.elapsedSeconds) }
+        dao.savedGame()?.let { SavedGame(it.puzzle.toPuzzle(), it.entries, it.elapsedSeconds, it.notes) }
 
     override fun hasSavedGame(): Flow<Boolean> = dao.hasSavedGame()
 
-    override suspend fun save(game: SavedGame) =
-        dao.save(SavedGameEntity(puzzleId = game.puzzle.id, entries = game.entries, elapsedSeconds = game.elapsedSeconds))
+    override suspend fun save(game: SavedGame) = dao.save(
+        SavedGameEntity(
+            puzzleId = game.puzzle.id,
+            entries = game.entries,
+            elapsedSeconds = game.elapsedSeconds,
+            notes = game.notes,
+        ),
+    )
 
     override suspend fun deleteSavedGame() = dao.deleteSavedGame()
 

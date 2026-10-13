@@ -146,6 +146,75 @@ class BoardTest {
         assertEquals('4', restored.entriesString()[2])
     }
 
+    @Test
+    fun `toggleNote adds and removes a pencil mark on an empty cell`() {
+        val noted = board.toggleNote(Cell(0, 2), 4).toggleNote(Cell(0, 2), 1)
+
+        assertEquals(setOf(1, 4), noted.notesAt(Cell(0, 2)))
+        assertEquals(0, noted.digitAt(Cell(0, 2)))
+        assertEquals(setOf(1), noted.toggleNote(Cell(0, 2), 4).notesAt(Cell(0, 2)))
+        assertEquals(emptySet(), board.notesAt(Cell(0, 2)))
+    }
+
+    @Test
+    fun `cells holding a digit take no notes`() {
+        assertSame(board, board.toggleNote(Cell(0, 0), 1))
+        val placed = board.place(Cell(0, 2), 4)
+        assertSame(placed, placed.toggleNote(Cell(0, 2), 1))
+        assertFailsWith<IllegalArgumentException> { board.toggleNote(Cell(0, 2), 0) }
+    }
+
+    @Test
+    fun `placing a digit clears its cell's notes and that digit from its peers`() {
+        val noted = board
+            .toggleNote(Cell(0, 2), 1).toggleNote(Cell(0, 2), 4)
+            .toggleNote(Cell(0, 3), 4).toggleNote(Cell(0, 3), 2)
+            .toggleNote(Cell(4, 2), 4)
+            .toggleNote(Cell(1, 1), 4)
+            .toggleNote(Cell(8, 0), 4)
+
+        val placed = noted.place(Cell(0, 2), 4)
+
+        assertEquals(emptySet(), placed.notesAt(Cell(0, 2)))
+        assertEquals(setOf(2), placed.notesAt(Cell(0, 3)))
+        assertEquals(emptySet(), placed.notesAt(Cell(4, 2)))
+        assertEquals(emptySet(), placed.notesAt(Cell(1, 1)))
+        assertEquals(setOf(4), placed.notesAt(Cell(8, 0)))
+    }
+
+    @Test
+    fun `clearing an entry leaves notes alone and reset removes them`() {
+        val noted = board.toggleNote(Cell(0, 3), 2).place(Cell(0, 2), 4)
+
+        assertEquals(setOf(2), noted.clear(Cell(0, 2)).notesAt(Cell(0, 3)))
+        assertSame(board, board.clear(Cell(0, 2)))
+        assertEquals(emptySet(), noted.reset().notesAt(Cell(0, 3)))
+    }
+
+    @Test
+    fun `notes round trip through notesString`() {
+        val noted = board.toggleNote(Cell(0, 2), 9).toggleNote(Cell(0, 2), 1).toggleNote(Cell(8, 0), 3)
+        val notes = noted.notesString()
+
+        assertEquals("19", notes.split(',')[2])
+        assertEquals("3", notes.split(',')[72])
+        assertEquals(notes, board.withNotes(notes).notesString())
+        assertEquals(",".repeat(80), board.notesString())
+        assertEquals(board.notesString(), noted.withNotes("").notesString())
+    }
+
+    @Test
+    fun `restored notes skip filled cells and reject malformed input`() {
+        val notes = Array(81) { "" }.also { it[0] = "1"; it[2] = "4" }.joinToString(",")
+
+        val restored = board.place(Cell(0, 2), 7).withNotes(notes)
+
+        assertEquals(emptySet(), restored.notesAt(Cell(0, 0)))
+        assertEquals(emptySet(), restored.notesAt(Cell(0, 2)))
+        assertFailsWith<IllegalArgumentException> { board.withNotes(",,") }
+        assertFailsWith<IllegalArgumentException> { board.withNotes(notes.replaceFirst("4", "0")) }
+    }
+
     companion object {
         const val PUZZLE = "530070000600195000098000060800060003400803001700020006060000280000419005000080079"
         const val SOLUTION = "534678912672195348198342567859761423426853791713924856961537284287419635345286179"

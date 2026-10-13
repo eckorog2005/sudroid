@@ -9,6 +9,7 @@
     <string name="reset">Reset</string>
     <string name="undo">Undo</string>
     <string name="redo">Redo</string>
+    <string name="notes">Notes</string>
     <string name="final_message">You finished the puzzle with a time of:</string>
     <string name="backMenu">Back to Main</string>
 </resources>

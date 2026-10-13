@@ -42,6 +42,8 @@ data class GameUiState(
     val elapsedSeconds: Int = 0,
     val canUndo: Boolean = false,
     val canRedo: Boolean = false,
+    /** When on, the number pad toggles pencil marks instead of placing digits. */
+    val notesMode: Boolean = false,
 ) {
     val isSolved: Boolean = board?.isSolved == true
 }
@@ -71,7 +73,9 @@ class GameViewModel(
         viewModelScope.launch {
             val saved = if (resume) repository.savedGame() else null
             puzzle = saved?.puzzle ?: repository.randomPuzzle((request as? GameRequest.New)?.difficulty ?: Difficulty.EASY)
-            val board = Board.fromPuzzle(puzzle.digits).let { if (saved != null) it.withEntries(saved.entries) else it }
+            val board = Board.fromPuzzle(puzzle.digits).let {
+                if (saved != null) it.withEntries(saved.entries).withNotes(saved.notes) else it
+            }
             _state.value = GameUiState(board = board, elapsedSeconds = saved?.elapsedSeconds ?: 0)
             savedState[STARTED] = true
         }
@@ -90,7 +94,13 @@ class GameViewModel(
         _state.update { it.copy(selected = cell) }
     }
 
-    fun enter(digit: Int) = moveOnSelected { board, cell -> board.place(cell, digit) }
+    fun enter(digit: Int) = moveOnSelected { board, cell ->
+        if (state.value.notesMode) board.toggleNote(cell, digit) else board.place(cell, digit)
+    }
+
+    fun toggleNotesMode() {
+        _state.update { it.copy(notesMode = !it.notesMode) }
+    }
 
     fun erase() = moveOnSelected { board, cell -> board.clear(cell) }
 
@@ -145,7 +155,7 @@ class GameViewModel(
         val current = state.value
         val board = current.board ?: return
         if (current.isSolved) return
-        pendingSaves.trySend(SavedGame(puzzle, board.entriesString(), current.elapsedSeconds))
+        pendingSaves.trySend(SavedGame(puzzle, board.entriesString(), current.elapsedSeconds, board.notesString()))
     }
 
     private companion object {

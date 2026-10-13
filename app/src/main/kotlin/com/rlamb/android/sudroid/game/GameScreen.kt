@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +48,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.drawText
@@ -79,6 +82,7 @@ fun GameScreen(viewModel: GameViewModel, onSolved: (elapsedSeconds: Int) -> Unit
         onReset = viewModel::reset,
         onUndo = viewModel::undo,
         onRedo = viewModel::redo,
+        onToggleNotes = viewModel::toggleNotesMode,
     )
 }
 
@@ -91,6 +95,7 @@ private fun GameContent(
     onReset: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
+    onToggleNotes: () -> Unit,
 ) {
     Scaffold { insets ->
         BoxWithConstraints(
@@ -106,7 +111,7 @@ private fun GameContent(
                 SudokuBoard(board, state.selected, onSelect, modifier)
             }
             val controls = @Composable { modifier: Modifier ->
-                Controls(state, onDigit, onErase, onReset, onUndo, onRedo, modifier)
+                Controls(state, onDigit, onErase, onReset, onUndo, onRedo, onToggleNotes, modifier)
             }
             if (maxWidth > maxHeight) {
                 Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -151,9 +156,23 @@ private fun SudokuBoard(board: Board, selected: Cell?, onSelect: (Cell) -> Unit,
         }
 
         val fontSize = (cellSize * 0.6f).toSp()
+        val noteStyle = digitStyle.copy(color = colors.onSurfaceVariant, fontSize = (cellSize * 0.22f).toSp())
+        val noteSize = cellSize / 3
         for (cell in Cell.ALL) {
             val digit = board.digitAt(cell)
-            if (digit == 0) continue
+            if (digit == 0) {
+                for (note in board.notesAt(cell)) {
+                    val text = textMeasurer.measure(note.toString(), noteStyle)
+                    drawText(
+                        text,
+                        topLeft = Offset(
+                            cell.col * cellSize + (note - 1) % 3 * noteSize + (noteSize - text.size.width) / 2,
+                            cell.row * cellSize + (note - 1) / 3 * noteSize + (noteSize - text.size.height) / 2,
+                        ),
+                    )
+                }
+                continue
+            }
             val style = when {
                 board.hasConflict(cell) -> digitStyle.copy(color = colors.error)
                 board.isGiven(cell) -> digitStyle.copy(color = colors.onSurface, fontWeight = FontWeight.Bold)
@@ -188,6 +207,7 @@ private fun Controls(
     onReset: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
+    onToggleNotes: () -> Unit,
     modifier: Modifier,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -209,6 +229,12 @@ private fun Controls(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = onUndo, enabled = state.canUndo) { Text(stringResource(R.string.undo)) }
             OutlinedButton(onClick = onRedo, enabled = state.canRedo) { Text(stringResource(R.string.redo)) }
+            val notesModifier = Modifier.semantics { selected = state.notesMode }
+            if (state.notesMode) {
+                Button(onClick = onToggleNotes, notesModifier) { Text(stringResource(R.string.notes)) }
+            } else {
+                OutlinedButton(onClick = onToggleNotes, notesModifier) { Text(stringResource(R.string.notes)) }
+            }
             OutlinedButton(onClick = onReset) { Text(stringResource(R.string.reset)) }
         }
     }
@@ -222,7 +248,10 @@ private fun GameContentPreview() {
     val board = Board.fromPuzzle("012604830700800052806003000280065000030000020000380046000900105950008007068507290")
         .place(Cell(0, 0), 9)
         .place(Cell(1, 1), 7)
+        .toggleNote(Cell(0, 4), 5)
+        .toggleNote(Cell(0, 4), 7)
+        .toggleNote(Cell(0, 8), 1)
     SudroidTheme {
-        GameContent(GameUiState(board, selected = Cell(1, 1), elapsedSeconds = 83, canUndo = true), {}, {}, {}, {}, {}, {})
+        GameContent(GameUiState(board, selected = Cell(1, 1), elapsedSeconds = 83, canUndo = true), {}, {}, {}, {}, {}, {}, {})
     }
 }

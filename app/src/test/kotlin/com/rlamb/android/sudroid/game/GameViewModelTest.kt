@@ -161,6 +161,52 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `in notes mode the number pad toggles pencil marks and saves them`() = runTest {
+        val viewModel = newGame()
+        viewModel.select(Cell(0, 0))
+
+        viewModel.toggleNotesMode()
+        viewModel.enter(4)
+        viewModel.enter(7)
+        viewModel.enter(4)
+
+        val board = assertNotNull(viewModel.state.value.board)
+        assertEquals(setOf(7), board.notesAt(Cell(0, 0)))
+        assertEquals(0, board.digitAt(Cell(0, 0)))
+        assertEquals(board.notesString(), repository.saved?.notes)
+
+        viewModel.toggleNotesMode()
+        viewModel.enter(4)
+        assertEquals(4, viewModel.state.value.board?.digitAt(Cell(0, 0)))
+        assertEquals(emptySet(), viewModel.state.value.board?.notesAt(Cell(0, 0)))
+    }
+
+    @Test
+    fun `resuming restores the saved notes`() = runTest {
+        val notes = Board.fromPuzzle(PUZZLE.digits).toggleNote(Cell(0, 0), 3).notesString()
+        repository.saved = SavedGame(PUZZLE, EMPTY_ENTRIES, elapsedSeconds = 5, notes = notes)
+
+        val state = GameViewModel(repository, GameRequest.Resume, saveScope, SavedStateHandle()).state.value
+
+        assertEquals(setOf(3), assertNotNull(state.board).notesAt(Cell(0, 0)))
+    }
+
+    @Test
+    fun `undo brings back notes a placed digit cleared`() = runTest {
+        val viewModel = newGame()
+        viewModel.select(Cell(0, 0))
+        viewModel.toggleNotesMode()
+        viewModel.enter(4)
+        viewModel.select(Cell(0, 4))
+        viewModel.toggleNotesMode()
+        viewModel.enter(4)
+
+        viewModel.undo()
+
+        assertEquals(setOf(4), viewModel.state.value.board?.notesAt(Cell(0, 0)))
+    }
+
+    @Test
     fun `undo restores the board before the last move and saves it`() = runTest {
         val viewModel = newGame()
         viewModel.select(Cell(0, 0))

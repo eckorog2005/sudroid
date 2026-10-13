@@ -43,12 +43,14 @@ data class SavedGameEntity(
     @ColumnInfo(name = "puzzle_id") val puzzleId: Int,
     val entries: String,
     @ColumnInfo(name = "elapsed_seconds") val elapsedSeconds: Int,
+    @ColumnInfo(defaultValue = "") val notes: String,
 )
 
 data class SavedGameWithPuzzle(
     @Embedded val puzzle: PuzzleEntity,
     val entries: String,
     @ColumnInfo(name = "elapsed_seconds") val elapsedSeconds: Int,
+    val notes: String,
 )
 
 @Dao
@@ -57,7 +59,7 @@ interface GameDao {
     suspend fun randomPuzzle(difficulty: Difficulty): PuzzleEntity?
 
     @Query(
-        "SELECT p.*, s.entries, s.elapsed_seconds FROM saved_game s " +
+        "SELECT p.*, s.entries, s.elapsed_seconds, s.notes FROM saved_game s " +
             "JOIN puzzles p ON p.id = s.puzzle_id LIMIT 1",
     )
     suspend fun savedGame(): SavedGameWithPuzzle?

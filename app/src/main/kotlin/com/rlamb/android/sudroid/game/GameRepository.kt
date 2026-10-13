@@ -27,8 +27,8 @@ enum class Difficulty { EASY, MEDIUM, HARD }
 /** [digits] is 81 digits in row-major order, with `0` for an empty cell. */
 data class Puzzle(val id: Int, val difficulty: Difficulty, val digits: String)
 
-/** [entries] uses the format of `Board.entriesString()`. */
-data class SavedGame(val puzzle: Puzzle, val entries: String, val elapsedSeconds: Int)
+/** [entries] and [notes] use the formats of `Board.entriesString()` and `Board.notesString()`. */
+data class SavedGame(val puzzle: Puzzle, val entries: String, val elapsedSeconds: Int, val notes: String = "")
 
 @Serializable
 sealed interface GameRequest {

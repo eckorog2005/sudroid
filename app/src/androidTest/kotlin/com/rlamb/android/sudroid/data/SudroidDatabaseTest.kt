@@ -100,7 +100,7 @@ class SudroidDatabaseTest {
         val repository = repository()
         val dao = checkNotNull(database).gameDao()
         val first = SavedGame(repository.randomPuzzle(Difficulty.EASY), ENTRIES, elapsedSeconds = 1)
-        val second = SavedGame(repository.randomPuzzle(Difficulty.HARD), ENTRIES, elapsedSeconds = 2)
+        val second = SavedGame(repository.randomPuzzle(Difficulty.HARD), ENTRIES, elapsedSeconds = 2, notes = NOTES)
 
         repository.save(first)
         repository.save(second)
@@ -110,6 +110,25 @@ class SudroidDatabaseTest {
         repository.deleteSavedGame()
         assertNull(repository.savedGame())
         assertFalse(dao.hasSavedGame().first())
+    }
+
+    @Test
+    fun upgradeFromVersion2KeepsTheGameWithNoNotes() = runBlocking {
+        SudroidDatabase.build(context, NAME).apply { openHelper.writableDatabase }.close()
+        val pattern = SQLiteDatabase.openDatabase(context.getDatabasePath(NAME).path, null, 0).use { db ->
+            db.execSQL("DROP TABLE saved_game")
+            db.execSQL(
+                "CREATE TABLE `saved_game` (`slot` INTEGER NOT NULL, `puzzle_id` INTEGER NOT NULL, " +
+                    "`entries` TEXT NOT NULL, `elapsed_seconds` INTEGER NOT NULL, PRIMARY KEY(`slot`))",
+            )
+            db.execSQL("INSERT INTO saved_game VALUES (0, 12, '$ENTRIES', 30)")
+            db.version = 2
+            db.rawQuery("SELECT digits FROM puzzles WHERE id = 12", null).use { it.moveToFirst(); it.getString(0) }
+        }
+
+        val saved = repository().savedGame()
+
+        assertEquals(SavedGame(Puzzle(12, Difficulty.EASY, pattern), ENTRIES, elapsedSeconds = 30, notes = ""), saved)
     }
 
     /** Builds the database the way the original SQLiteOpenHelper did and returns puzzle 12's pattern. */
@@ -143,6 +162,7 @@ class SudroidDatabaseTest {
     private companion object {
         const val NAME = "sudroid-database-test"
         val ENTRIES = "4" + "0".repeat(80)
+        val NOTES = "," + "13," + ",".repeat(78) + "9"
         val PUZZLE_COUNTS = mapOf("EASY" to 150, "MEDIUM" to 150, "HARD" to 150)
     }
 }

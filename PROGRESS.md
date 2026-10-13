@@ -6,8 +6,8 @@ The plan for turning the 2012 app into a modern Android game, step by step. Tick
 
 - Steps 1 and 2 are merged. Step 3 is in progress, one branch per feature:
   1. Done on `feat/core-play-features`: undo and redo, held in memory by `GameViewModel` (the history is lost when the game screen closes).
-  2. Next, on `feat/pencil-marks`: notes, saved in a new `saved_game.notes` column with a Room 2→3 migration so `entries` keeps its format.
-  3. Then highlighting and number pad counts, which only change the UI, and mistake modes last, since they need a setting.
+  2. Done on `feat/pencil-marks` (branched from the undo branch): notes, stored in `Board` so undo covers them, and saved in a new `saved_game.notes` column through a Room 2→3 auto-migration, so `entries` keeps its format. Checked on the emulator in portrait and landscape.
+  3. Next highlighting and number pad counts, which only change the UI, and mistake modes last, since they need a setting.
 
 ## 1. Port the engine to Kotlin with tests: done
 
@@ -43,7 +43,7 @@ Existing bugs this step fixes:
 
 ## 3. Core play features
 
-- [ ] Pencil marks (notes), cleared automatically when a digit is placed in the same row, column or box
+- [x] Pencil marks (notes), cleared automatically when a digit is placed in the same row, column or box
 - [x] Undo and redo (also makes Reset safe; it currently has no confirmation)
 - [ ] Highlight the selected cell's row, column and box, and every cell with the same digit
 - [ ] Number pad shows how many of each digit are left and dims finished digits

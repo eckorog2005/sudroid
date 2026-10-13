@@ -29,9 +29,9 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
 ## Puzzle data and saves
 
 - Puzzles ship as SQL statements in `app/src/main/assets/data.txt`, 150 each for easy, medium and hard. They build the original version 1 schema (`Puzzle`, `Current`, ...).
-- Room keeps the old file name, `SudroidDB`, at version 2. `MIGRATION_1_2` converts the version 1 tables into `puzzles` and `saved_game` and drops them. Fresh installs run `data.txt` and then the same conversion, so puzzle IDs match in both paths.
+- Room keeps the old file name, `SudroidDB`, now at version 3. `MIGRATION_1_2` converts the version 1 tables into `puzzles` and `saved_game` and drops them; an auto-migration adds `saved_game.notes` in version 3. Fresh installs run `data.txt` and then the same conversion, so puzzle IDs match in both paths.
 - Edits to `data.txt` only reach fresh installs. To reach existing installs, bump the database version and add a migration. Room exports each schema to `app/schemas`; commit it.
-- Puzzle strings are 81 digits in row-major order, with `0` for an empty cell. The saved game (`saved_game.entries`, formerly `Current.userEntered`) uses the same format with givens written as `0`; see `Board.entriesString()` and `Board.withEntries()`. Keep this format compatible so existing saved games still resume.
+- Puzzle strings are 81 digits in row-major order, with `0` for an empty cell. The saved game (`saved_game.entries`, formerly `Current.userEntered`) uses the same format with givens written as `0`; see `Board.entriesString()` and `Board.withEntries()`. Pencil marks go in `saved_game.notes` as 81 comma-separated digit groups (`Board.notesString()`), empty for saves from before version 3. Keep this format compatible so existing saved games still resume.
 - `SolverTest` reads `data.txt`, whose path comes in through the `sudroid.puzzleData` system property, and requires every bundled puzzle to have exactly one solution.
 
 ## Gotchas

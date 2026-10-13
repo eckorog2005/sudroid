@@ -20,6 +20,7 @@
 package com.rlamb.android.sudroid.data
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -27,7 +28,11 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.rlamb.android.sudroid.game.parseElapsed
 
-@Database(entities = [PuzzleEntity::class, SavedGameEntity::class], version = 2)
+@Database(
+    entities = [PuzzleEntity::class, SavedGameEntity::class],
+    version = 3,
+    autoMigrations = [AutoMigration(from = 2, to = 3)],
+)
 abstract class SudroidDatabase : RoomDatabase() {
     abstract fun gameDao(): GameDao
 

@@ -46,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
@@ -147,12 +148,18 @@ private fun SudokuBoard(board: Board, selected: Cell?, onSelect: (Cell) -> Unit,
     ) {
         val cellSize = size.width / Board.SIZE
         drawRect(colors.surfaceContainerLow)
+        fun highlight(cell: Cell, color: Color) = drawRect(
+            color,
+            topLeft = Offset(cell.col * cellSize, cell.row * cellSize),
+            size = Size(cellSize, cellSize),
+        )
         if (selected != null) {
-            drawRect(
-                colors.primaryContainer,
-                topLeft = Offset(selected.col * cellSize, selected.row * cellSize),
-                size = Size(cellSize, cellSize),
-            )
+            val selectedDigit = board.digitAt(selected)
+            selected.peers.forEach { highlight(it, colors.surfaceContainerHighest) }
+            if (selectedDigit != 0) {
+                Cell.ALL.filter { board.digitAt(it) == selectedDigit }.forEach { highlight(it, colors.tertiaryContainer) }
+            }
+            highlight(selected, colors.primaryContainer)
         }
 
         val fontSize = (cellSize * 0.6f).toSp()

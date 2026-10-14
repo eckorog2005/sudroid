@@ -23,6 +23,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.rlamb.android.sudroid.data.PreferencesSettingsRepository
 import com.rlamb.android.sudroid.data.RoomGameRepository
 import com.rlamb.android.sudroid.ui.SudroidTheme
@@ -31,6 +32,7 @@ import kotlinx.coroutines.MainScope
 /** The only Activity; it keeps the original class name so existing launcher shortcuts still work. */
 class SudroidActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val repository = RoomGameRepository.get(this)

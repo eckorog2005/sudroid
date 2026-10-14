@@ -19,8 +19,9 @@
 
 package com.rlamb.android.sudroid.game
 
+import android.content.res.Resources
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -28,9 +29,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
@@ -41,22 +45,27 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -118,14 +127,20 @@ private fun GameContent(
                 Controls(state, onDigit, onErase, onReset, onUndo, onRedo, onToggleNotes, onCheck, modifier)
             }
             if (maxWidth > maxHeight) {
-                Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.CenterVertically) {
-                    sudokuBoard(Modifier.weight(1f, fill = false).aspectRatio(1f, matchHeightConstraintsFirst = true))
-                    controls(Modifier.weight(1f))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    sudokuBoard(
+                        Modifier.weight(1f, fill = false).widthIn(max = MaxBoardWidth)
+                            .aspectRatio(1f, matchHeightConstraintsFirst = true),
+                    )
+                    controls(Modifier.weight(1f, fill = false).widthIn(max = MaxControlsWidth))
                 }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    sudokuBoard(Modifier.weight(1f, fill = false).aspectRatio(1f))
-                    controls(Modifier.fillMaxWidth())
+                    sudokuBoard(Modifier.weight(1f, fill = false).widthIn(max = MaxBoardWidth).aspectRatio(1f))
+                    controls(Modifier.widthIn(max = MaxControlsWidth).fillMaxWidth())
                 }
             }
         }
@@ -134,21 +149,70 @@ private fun GameContent(
 
 @Composable
 private fun SudokuBoard(board: Board, selected: Cell?, showMistakes: Boolean, onSelect: (Cell) -> Unit, modifier: Modifier) {
+    val textMeasurer = rememberTextMeasurer()
+    val resources = LocalResources.current
+    val descriptions = remember(board, showMistakes, resources) {
+        Cell.ALL.map { describe(resources, board, it, showMistakes) }
+    }
+
+    Box(modifier) {
+        BoardCanvas(board, selected, showMistakes, textMeasurer, Modifier.matchParentSize())
+        CellTargets(descriptions, selected, onSelect, Modifier.matchParentSize())
+    }
+}
+
+private fun describe(resources: Resources, board: Board, cell: Cell, showMistakes: Boolean): String {
+    val row = cell.row + 1
+    val col = cell.col + 1
+    val digit = board.digitAt(cell)
+    val description = when {
+        digit == 0 -> {
+            val notes = board.notesAt(cell).sorted()
+            if (notes.isEmpty()) {
+                resources.getString(R.string.cell_empty, row, col)
+            } else {
+                resources.getString(R.string.cell_notes, row, col, notes.joinToString(", "))
+            }
+        }
+        board.isGiven(cell) -> resources.getString(R.string.cell_given, row, col, digit)
+        else -> resources.getString(R.string.cell_entry, row, col, digit)
+    }
+    return if (showMistakes && board.hasConflict(cell)) resources.getString(R.string.cell_conflict, description) else description
+}
+
+@Composable
+private fun CellTargets(descriptions: List<String>, selected: Cell?, onSelect: (Cell) -> Unit, modifier: Modifier) {
+    Column(modifier) {
+        for (row in 0 until Board.SIZE) {
+            Row(Modifier.weight(1f)) {
+                for (col in 0 until Board.SIZE) {
+                    val cell = Cell(row, col)
+                    Box(
+                        Modifier.weight(1f).fillMaxHeight()
+                            .clickable(interactionSource = null, indication = null, role = Role.Button) { onSelect(cell) }
+                            .semantics {
+                                contentDescription = descriptions[row * Board.SIZE + col]
+                                this.selected = cell == selected
+                            },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BoardCanvas(
+    board: Board,
+    selected: Cell?,
+    showMistakes: Boolean,
+    textMeasurer: TextMeasurer,
+    modifier: Modifier,
+) {
     val colors = MaterialTheme.colorScheme
     val digitStyle = MaterialTheme.typography.headlineMedium
-    val textMeasurer = rememberTextMeasurer()
-    val currentOnSelect by rememberUpdatedState(onSelect)
 
-    Canvas(
-        modifier.pointerInput(Unit) {
-            detectTapGestures { tap ->
-                val cellSize = size.width / Board.SIZE.toFloat()
-                val row = (tap.y / cellSize).toInt()
-                val col = (tap.x / cellSize).toInt()
-                if (row in 0 until Board.SIZE && col in 0 until Board.SIZE) currentOnSelect(Cell(row, col))
-            }
-        },
-    ) {
+    Canvas(modifier) {
         val cellSize = size.width / Board.SIZE
         drawRect(colors.surfaceContainerLow)
         fun highlight(cell: Cell, color: Color) = drawRect(
@@ -242,13 +306,14 @@ private fun Controls(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (digit in digits) {
                     val remaining = state.board?.remaining(digit) ?: 0
+                    val description = stringResource(R.string.digit_remaining, digit, remaining)
                     FilledTonalButton(
                         onClick = { onDigit(digit) },
-                        Modifier.weight(1f),
+                        Modifier.weight(1f).semantics { contentDescription = description },
                         enabled = remaining > 0,
                         contentPadding = PadButtonPadding,
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(Modifier.clearAndSetSemantics {}, horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(digit.toString(), style = MaterialTheme.typography.titleLarge)
                             Text(remaining.toString(), style = MaterialTheme.typography.labelSmall)
                         }
@@ -256,7 +321,7 @@ private fun Controls(
                 }
                 if (digits.last == 9) {
                     OutlinedButton(onClick = onErase, Modifier.weight(1f), contentPadding = PadButtonPadding) {
-                        Text(stringResource(R.string.erase), maxLines = 1)
+                        PadLabel(stringResource(R.string.erase))
                     }
                 }
             }
@@ -264,33 +329,45 @@ private fun Controls(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             val weighted = Modifier.weight(1f)
             OutlinedButton(onClick = onUndo, weighted, enabled = state.canUndo, contentPadding = PadButtonPadding) {
-                Text(stringResource(R.string.undo), maxLines = 1)
+                PadLabel(stringResource(R.string.undo))
             }
             OutlinedButton(onClick = onRedo, weighted, enabled = state.canRedo, contentPadding = PadButtonPadding) {
-                Text(stringResource(R.string.redo), maxLines = 1)
+                PadLabel(stringResource(R.string.redo))
             }
             val notesModifier = weighted.semantics { selected = state.notesMode }
             if (state.notesMode) {
                 Button(onClick = onToggleNotes, notesModifier, contentPadding = PadButtonPadding) {
-                    Text(stringResource(R.string.notes), maxLines = 1)
+                    PadLabel(stringResource(R.string.notes))
                 }
             } else {
                 OutlinedButton(onClick = onToggleNotes, notesModifier, contentPadding = PadButtonPadding) {
-                    Text(stringResource(R.string.notes), maxLines = 1)
+                    PadLabel(stringResource(R.string.notes))
                 }
             }
             if (state.mistakeMode == MistakeMode.ON_REQUEST) {
                 OutlinedButton(onClick = onCheck, weighted, contentPadding = PadButtonPadding) {
-                    Text(stringResource(R.string.check), maxLines = 1)
+                    PadLabel(stringResource(R.string.check))
                 }
             }
             OutlinedButton(onClick = onReset, weighted, contentPadding = PadButtonPadding) {
-                Text(stringResource(R.string.reset), maxLines = 1)
+                PadLabel(stringResource(R.string.reset))
             }
         }
     }
 }
 
+/** Shrinks to fit its button, so large system font sizes don't clip the label. */
+@Composable
+private fun PadLabel(text: String) {
+    Text(
+        text,
+        maxLines = 1,
+        autoSize = TextAutoSize.StepBased(minFontSize = 8.sp, maxFontSize = MaterialTheme.typography.labelLarge.fontSize),
+    )
+}
+
+private val MaxBoardWidth = 640.dp
+private val MaxControlsWidth = 440.dp
 private val PadButtonPadding = PaddingValues(horizontal = 4.dp, vertical = 12.dp)
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 720)

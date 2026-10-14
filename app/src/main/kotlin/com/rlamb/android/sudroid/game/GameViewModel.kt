@@ -44,8 +44,12 @@ data class GameUiState(
     val canRedo: Boolean = false,
     /** When on, the number pad toggles pencil marks instead of placing digits. */
     val notesMode: Boolean = false,
+    val mistakeMode: MistakeMode = MistakeMode.ALWAYS,
+    /** Set by a check request under [MistakeMode.ON_REQUEST]; the next move, undo or redo clears it. */
+    val checking: Boolean = false,
 ) {
     val isSolved: Boolean = board?.isSolved == true
+    val showMistakes: Boolean = mistakeMode == MistakeMode.ALWAYS || (mistakeMode == MistakeMode.ON_REQUEST && checking)
 }
 
 /** [saveScope] must outlive the ViewModel, so the last save or delete lands after the screen closes. */
@@ -54,8 +58,9 @@ class GameViewModel(
     request: GameRequest,
     saveScope: CoroutineScope,
     private val savedState: SavedStateHandle,
+    mistakeMode: MistakeMode = MistakeMode.ALWAYS,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(GameUiState())
+    private val _state = MutableStateFlow(GameUiState(mistakeMode = mistakeMode))
     val state: StateFlow<GameUiState> = _state.asStateFlow()
 
     private lateinit var puzzle: Puzzle
@@ -76,7 +81,7 @@ class GameViewModel(
             val board = Board.fromPuzzle(puzzle.digits).let {
                 if (saved != null) it.withEntries(saved.entries).withNotes(saved.notes) else it
             }
-            _state.value = GameUiState(board = board, elapsedSeconds = saved?.elapsedSeconds ?: 0)
+            _state.update { it.copy(board = board, elapsedSeconds = saved?.elapsedSeconds ?: 0) }
             savedState[STARTED] = true
         }
         saveScope.launch {
@@ -100,6 +105,10 @@ class GameViewModel(
 
     fun toggleNotesMode() {
         _state.update { it.copy(notesMode = !it.notesMode) }
+    }
+
+    fun checkMistakes() {
+        _state.update { it.copy(checking = true) }
     }
 
     fun erase() = moveOnSelected { board, cell -> board.clear(cell) }
@@ -147,7 +156,9 @@ class GameViewModel(
     }
 
     private fun show(board: Board) {
-        _state.update { it.copy(board = board, canUndo = undoStack.isNotEmpty(), canRedo = redoStack.isNotEmpty()) }
+        _state.update {
+            it.copy(board = board, canUndo = undoStack.isNotEmpty(), canRedo = redoStack.isNotEmpty(), checking = false)
+        }
         if (_state.value.isSolved) pendingSaves.trySend(null) else save()
     }
 

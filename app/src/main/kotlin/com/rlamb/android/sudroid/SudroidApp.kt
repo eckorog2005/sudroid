@@ -35,6 +35,7 @@ import com.rlamb.android.sudroid.game.GameRepository
 import com.rlamb.android.sudroid.game.GameRequest
 import com.rlamb.android.sudroid.game.GameScreen
 import com.rlamb.android.sudroid.game.GameViewModel
+import com.rlamb.android.sudroid.game.SettingsRepository
 import com.rlamb.android.sudroid.menu.MenuScreen
 import com.rlamb.android.sudroid.results.ResultsScreen
 import kotlinx.coroutines.CoroutineScope
@@ -50,7 +51,7 @@ data class Game(val request: GameRequest) : NavKey
 data class Results(val elapsedSeconds: Int) : NavKey
 
 @Composable
-fun SudroidApp(repository: GameRepository, saveScope: CoroutineScope) {
+fun SudroidApp(repository: GameRepository, settings: SettingsRepository, saveScope: CoroutineScope) {
     val backStack = rememberNavBackStack(Menu)
     NavDisplay(
         backStack = backStack,
@@ -62,11 +63,14 @@ fun SudroidApp(repository: GameRepository, saveScope: CoroutineScope) {
         entryProvider = entryProvider {
             entry<Menu> {
                 val hasSavedGame by remember { repository.hasSavedGame() }.collectAsStateWithLifecycle(false)
-                MenuScreen(hasSavedGame, onStart = { request -> backStack.add(Game(request)) })
+                val mistakeMode by settings.mistakeMode.collectAsStateWithLifecycle()
+                MenuScreen(hasSavedGame, mistakeMode, settings::setMistakeMode, onStart = { request -> backStack.add(Game(request)) })
             }
             entry<Game> { key ->
                 GameScreen(
-                    viewModel = viewModel { GameViewModel(repository, key.request, saveScope, createSavedStateHandle()) },
+                    viewModel = viewModel {
+                        GameViewModel(repository, key.request, saveScope, createSavedStateHandle(), settings.mistakeMode.value)
+                    },
                     onSolved = { elapsedSeconds ->
                         // Replacing the game keeps Back from returning to a finished board.
                         if (backStack.lastOrNull() == key) backStack[backStack.lastIndex] = Results(elapsedSeconds)

@@ -32,6 +32,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -42,10 +45,16 @@ import androidx.compose.ui.unit.dp
 import com.rlamb.android.sudroid.R
 import com.rlamb.android.sudroid.game.Difficulty
 import com.rlamb.android.sudroid.game.GameRequest
+import com.rlamb.android.sudroid.game.MistakeMode
 import com.rlamb.android.sudroid.ui.SudroidTheme
 
 @Composable
-fun MenuScreen(hasSavedGame: Boolean, onStart: (GameRequest) -> Unit) {
+fun MenuScreen(
+    hasSavedGame: Boolean,
+    mistakeMode: MistakeMode,
+    onMistakeMode: (MistakeMode) -> Unit,
+    onStart: (GameRequest) -> Unit,
+) {
     Scaffold { insets ->
         Column(
             Modifier.fillMaxSize().padding(insets).verticalScroll(rememberScrollState()).padding(24.dp),
@@ -62,6 +71,19 @@ fun MenuScreen(hasSavedGame: Boolean, onStart: (GameRequest) -> Unit) {
                     Text(stringResource(label))
                 }
             }
+            Spacer(Modifier.height(8.dp))
+            Text(stringResource(R.string.mistakes), style = MaterialTheme.typography.titleMedium)
+            SingleChoiceSegmentedButtonRow {
+                MistakeLabels.forEachIndexed { index, (mode, label) ->
+                    SegmentedButton(
+                        selected = mode == mistakeMode,
+                        onClick = { onMistakeMode(mode) },
+                        shape = SegmentedButtonDefaults.itemShape(index, MistakeLabels.size),
+                    ) {
+                        Text(stringResource(label), maxLines = 1)
+                    }
+                }
+            }
         }
     }
 }
@@ -74,8 +96,14 @@ private val DifficultyLabels = listOf(
     Difficulty.HARD to R.string.hard,
 )
 
+private val MistakeLabels = listOf(
+    MistakeMode.ALWAYS to R.string.mistakes_always,
+    MistakeMode.ON_REQUEST to R.string.mistakes_on_request,
+    MistakeMode.NEVER to R.string.mistakes_never,
+)
+
 @Preview(showBackground = true, widthDp = 360, heightDp = 720)
 @Composable
 private fun MenuScreenPreview() {
-    SudroidTheme { MenuScreen(hasSavedGame = true, onStart = {}) }
+    SudroidTheme { MenuScreen(hasSavedGame = true, mistakeMode = MistakeMode.ALWAYS, onMistakeMode = {}, onStart = {}) }
 }

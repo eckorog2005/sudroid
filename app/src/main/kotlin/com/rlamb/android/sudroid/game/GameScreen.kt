@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
@@ -118,14 +119,20 @@ private fun GameContent(
                 Controls(state, onDigit, onErase, onReset, onUndo, onRedo, onToggleNotes, onCheck, modifier)
             }
             if (maxWidth > maxHeight) {
-                Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.CenterVertically) {
-                    sudokuBoard(Modifier.weight(1f, fill = false).aspectRatio(1f, matchHeightConstraintsFirst = true))
-                    controls(Modifier.weight(1f))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    sudokuBoard(
+                        Modifier.weight(1f, fill = false).widthIn(max = MaxBoardWidth)
+                            .aspectRatio(1f, matchHeightConstraintsFirst = true),
+                    )
+                    controls(Modifier.weight(1f, fill = false).widthIn(max = MaxControlsWidth))
                 }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    sudokuBoard(Modifier.weight(1f, fill = false).aspectRatio(1f))
-                    controls(Modifier.fillMaxWidth())
+                    sudokuBoard(Modifier.weight(1f, fill = false).widthIn(max = MaxBoardWidth).aspectRatio(1f))
+                    controls(Modifier.widthIn(max = MaxControlsWidth).fillMaxWidth())
                 }
             }
         }
@@ -291,6 +298,8 @@ private fun Controls(
     }
 }
 
+private val MaxBoardWidth = 640.dp
+private val MaxControlsWidth = 440.dp
 private val PadButtonPadding = PaddingValues(horizontal = 4.dp, vertical = 12.dp)
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 720)

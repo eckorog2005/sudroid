@@ -15,6 +15,12 @@
     <string name="mistakes_always">Always</string>
     <string name="mistakes_on_request">On request</string>
     <string name="mistakes_never">Never</string>
+    <string name="cell_empty">Row %1$d, column %2$d, empty</string>
+    <string name="cell_notes">Row %1$d, column %2$d, empty, notes %3$s</string>
+    <string name="cell_given">Row %1$d, column %2$d, %3$d, given</string>
+    <string name="cell_entry">Row %1$d, column %2$d, %3$d</string>
+    <string name="cell_conflict">%1$s, conflicts with another cell</string>
+    <string name="digit_remaining">%1$d, %2$d left</string>
     <string name="final_message">You finished the puzzle with a time of:</string>
     <string name="backMenu">Back to Main</string>
 </resources>

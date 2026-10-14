@@ -9,7 +9,8 @@ The plan for turning the 2012 app into a modern Android game, step by step. Tick
   2. Done and merged in [#7](https://github.com/eckorog2005/sudroid/pull/7): notes, stored in `Board` so undo covers them, and saved in a new `saved_game.notes` column through a Room 2→3 auto-migration, so `entries` keeps its format.
   3. Done and merged in [#8](https://github.com/eckorog2005/sudroid/pull/8): the selected cell's row, column and box get a tint, and cells with the same digit get a stronger one. It only changes drawing; `Cell.peers` is now public.
   4. Done and merged in [#9](https://github.com/eckorog2005/sudroid/pull/9): each pad button shows how many of its digit are left (`Board.remaining`) and is disabled at 0.
-  5. Done on `feat/mistake-modes`: a global setting on the menu (always, on request, never), kept in `SharedPreferences` through `SettingsRepository`. Conflicts get a corner triangle as well as red, and on request a Check button shows them until the next move. Step 3 is complete; step 4 is next.
+  5. Done and merged in [#10](https://github.com/eckorog2005/sudroid/pull/10): a global setting on the menu (always, on request, never), kept in `SharedPreferences` through `SettingsRepository`. Conflicts get a corner triangle as well as red, and on request a Check button shows them until the next move. Step 3 is complete.
+  6. Step 4 in progress. Done on `feat/dynamic-color`: dynamic color on Android 12+ with the static scheme as fallback, light and dark following the system, and a day/night window theme so the launch frame matches. Next the layouts for tablets, foldables and landscape.
 
 ## 1. Port the engine to Kotlin with tests: done
 
@@ -53,7 +54,7 @@ Existing bugs this step fixes:
 
 ## 4. Platform and visuals
 
-- [ ] Material 3 with dynamic color and dark mode
+- [x] Material 3 with dynamic color and dark mode
 - [ ] Layouts for tablets, foldables and landscape (the portrait lock is ignored on large screens since Android 16)
 - [ ] Accessibility: a TalkBack description for each cell, and text that follows the system font size
 - [ ] Adaptive launcher icon with a monochrome layer

@@ -37,6 +37,12 @@ class Board private constructor(
 
     fun notesAt(cell: Cell): Set<Int> = (1..SIZE).filterTo(mutableSetOf()) { notes[cell.index] and (1 shl it) != 0 }
 
+    /** How many more of [digit] the grid takes; conflicting entries count, so it never goes below 0. */
+    fun remaining(digit: Int): Int {
+        requireDigit(digit)
+        return (SIZE - Cell.ALL.count { digitAt(it) == digit }).coerceAtLeast(0)
+    }
+
     fun hasConflict(cell: Cell): Boolean {
         val digit = digitAt(cell)
         return digit != BLANK && cell.peers.any { digitAt(it) == digit }

@@ -54,6 +54,17 @@ class BoardTest {
     }
 
     @Test
+    fun `remaining counts givens and entries and stops at zero`() {
+        assertEquals(6, board.remaining(5))
+        assertEquals(5, board.place(Cell(0, 2), 5).remaining(5))
+
+        val full = Cell.ALL.fold(Board.EMPTY) { b, cell -> b.place(cell, 3) }
+        assertEquals(0, full.remaining(3))
+        assertEquals(9, full.remaining(4))
+        assertFailsWith<IllegalArgumentException> { board.remaining(0) }
+    }
+
+    @Test
     fun `place rejects digits outside 1 to 9`() {
         assertFailsWith<IllegalArgumentException> { board.place(Cell(0, 2), 0) }
         assertFailsWith<IllegalArgumentException> { board.place(Cell(0, 2), 10) }

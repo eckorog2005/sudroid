@@ -222,8 +222,17 @@ private fun Controls(
         for (digits in listOf(1..5, 6..9)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (digit in digits) {
-                    FilledTonalButton(onClick = { onDigit(digit) }, Modifier.weight(1f), contentPadding = PadButtonPadding) {
-                        Text(digit.toString(), style = MaterialTheme.typography.titleLarge)
+                    val remaining = state.board?.remaining(digit) ?: 0
+                    FilledTonalButton(
+                        onClick = { onDigit(digit) },
+                        Modifier.weight(1f),
+                        enabled = remaining > 0,
+                        contentPadding = PadButtonPadding,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(digit.toString(), style = MaterialTheme.typography.titleLarge)
+                            Text(remaining.toString(), style = MaterialTheme.typography.labelSmall)
+                        }
                     }
                 }
                 if (digits.last == 9) {

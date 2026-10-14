@@ -160,7 +160,7 @@ private fun SudokuBoard(board: Board, selected: Cell?, showMistakes: Boolean, on
             val selectedDigit = board.digitAt(selected)
             selected.peers.forEach { highlight(it, colors.surfaceContainerHighest) }
             if (selectedDigit != 0) {
-                Cell.ALL.filter { board.digitAt(it) == selectedDigit }.forEach { highlight(it, colors.tertiaryContainer) }
+                Cell.ALL.filter { board.digitAt(it) == selectedDigit }.forEach { highlight(it, colors.tertiary.copy(alpha = 0.35f)) }
             }
             highlight(selected, colors.primaryContainer)
         }

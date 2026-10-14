@@ -344,7 +344,46 @@ class GameViewModelTest {
         assertEquals("4" + EMPTY_ENTRIES.drop(1), repository.saved?.entries)
     }
 
-    private fun newGame() = GameViewModel(repository, GameRequest.New(Difficulty.EASY), saveScope, SavedStateHandle())
+    @Test
+    fun `mistakes show at once by default and never under the never mode`() = runTest {
+        val always = newGame()
+        val never = newGame(MistakeMode.NEVER)
+        for (viewModel in listOf(always, never)) {
+            viewModel.select(Cell(0, 0))
+            viewModel.enter(1)
+        }
+
+        assertTrue(always.state.value.showMistakes)
+        assertFalse(never.state.value.showMistakes)
+        never.checkMistakes()
+        assertFalse(never.state.value.showMistakes)
+    }
+
+    @Test
+    fun `on request, a check shows mistakes until the next move, undo or redo`() = runTest {
+        val viewModel = newGame(MistakeMode.ON_REQUEST)
+        viewModel.select(Cell(0, 0))
+        viewModel.enter(1)
+        assertFalse(viewModel.state.value.showMistakes)
+
+        viewModel.checkMistakes()
+        assertTrue(viewModel.state.value.showMistakes)
+        viewModel.select(Cell(0, 2))
+        assertTrue(viewModel.state.value.showMistakes)
+
+        viewModel.undo()
+        assertFalse(viewModel.state.value.showMistakes)
+        viewModel.checkMistakes()
+        viewModel.redo()
+        assertFalse(viewModel.state.value.showMistakes)
+        viewModel.checkMistakes()
+        viewModel.select(Cell(0, 0))
+        viewModel.enter(5)
+        assertFalse(viewModel.state.value.showMistakes)
+    }
+
+    private fun newGame(mistakeMode: MistakeMode = MistakeMode.ALWAYS) =
+        GameViewModel(repository, GameRequest.New(Difficulty.EASY), saveScope, SavedStateHandle(), mistakeMode)
 
     private fun oneMoveFromSolved(): Pair<GameViewModel, Cell> {
         val lastCell = Cell.ALL.first { !SOLUTION.isGiven(it) }

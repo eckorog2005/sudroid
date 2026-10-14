@@ -8,8 +8,8 @@ The plan for turning the 2012 app into a modern Android game, step by step. Tick
   1. Done on `feat/core-play-features`: undo and redo, held in memory by `GameViewModel` (the history is lost when the game screen closes).
   2. Done and merged in [#7](https://github.com/eckorog2005/sudroid/pull/7): notes, stored in `Board` so undo covers them, and saved in a new `saved_game.notes` column through a Room 2→3 auto-migration, so `entries` keeps its format.
   3. Done and merged in [#8](https://github.com/eckorog2005/sudroid/pull/8): the selected cell's row, column and box get a tint, and cells with the same digit get a stronger one. It only changes drawing; `Cell.peers` is now public.
-  4. Done on `feat/number-pad-counts`: each pad button shows how many of its digit are left (`Board.remaining`) and is disabled at 0.
-  5. Next mistake modes, which need a setting.
+  4. Done and merged in [#9](https://github.com/eckorog2005/sudroid/pull/9): each pad button shows how many of its digit are left (`Board.remaining`) and is disabled at 0.
+  5. Done on `feat/mistake-modes`: a global setting on the menu (always, on request, never), kept in `SharedPreferences` through `SettingsRepository`. Conflicts get a corner triangle as well as red, and on request a Check button shows them until the next move. Step 3 is complete; step 4 is next.
 
 ## 1. Port the engine to Kotlin with tests: done
 
@@ -49,7 +49,7 @@ Existing bugs this step fixes:
 - [x] Undo and redo (also makes Reset safe; it currently has no confirmation)
 - [x] Highlight the selected cell's row, column and box, and every cell with the same digit
 - [x] Number pad shows how many of each digit are left and dims finished digits
-- [ ] Mistake modes: show immediately, only on request, or never; mark errors with a shape as well as color
+- [x] Mistake modes: show immediately, only on request, or never; mark errors with a shape as well as color
 
 ## 4. Platform and visuals
 

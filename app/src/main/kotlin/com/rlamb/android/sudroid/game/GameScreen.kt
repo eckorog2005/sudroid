@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
@@ -84,6 +85,7 @@ fun GameScreen(viewModel: GameViewModel, onSolved: (elapsedSeconds: Int) -> Unit
         onUndo = viewModel::undo,
         onRedo = viewModel::redo,
         onToggleNotes = viewModel::toggleNotesMode,
+        onCheck = viewModel::checkMistakes,
     )
 }
 
@@ -97,6 +99,7 @@ private fun GameContent(
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onToggleNotes: () -> Unit,
+    onCheck: () -> Unit,
 ) {
     Scaffold { insets ->
         BoxWithConstraints(
@@ -109,10 +112,10 @@ private fun GameContent(
                 return@BoxWithConstraints
             }
             val sudokuBoard = @Composable { modifier: Modifier ->
-                SudokuBoard(board, state.selected, onSelect, modifier)
+                SudokuBoard(board, state.selected, state.showMistakes, onSelect, modifier)
             }
             val controls = @Composable { modifier: Modifier ->
-                Controls(state, onDigit, onErase, onReset, onUndo, onRedo, onToggleNotes, modifier)
+                Controls(state, onDigit, onErase, onReset, onUndo, onRedo, onToggleNotes, onCheck, modifier)
             }
             if (maxWidth > maxHeight) {
                 Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -130,7 +133,7 @@ private fun GameContent(
 }
 
 @Composable
-private fun SudokuBoard(board: Board, selected: Cell?, onSelect: (Cell) -> Unit, modifier: Modifier) {
+private fun SudokuBoard(board: Board, selected: Cell?, showMistakes: Boolean, onSelect: (Cell) -> Unit, modifier: Modifier) {
     val colors = MaterialTheme.colorScheme
     val digitStyle = MaterialTheme.typography.headlineMedium
     val textMeasurer = rememberTextMeasurer()
@@ -180,8 +183,23 @@ private fun SudokuBoard(board: Board, selected: Cell?, onSelect: (Cell) -> Unit,
                 }
                 continue
             }
+            val isMistake = showMistakes && board.hasConflict(cell)
+            if (isMistake) {
+                val corner = cellSize * 0.28f
+                val right = (cell.col + 1) * cellSize
+                val top = cell.row * cellSize
+                drawPath(
+                    Path().apply {
+                        moveTo(right - corner, top)
+                        lineTo(right, top)
+                        lineTo(right, top + corner)
+                        close()
+                    },
+                    colors.error,
+                )
+            }
             val style = when {
-                board.hasConflict(cell) -> digitStyle.copy(color = colors.error)
+                isMistake -> digitStyle.copy(color = colors.error)
                 board.isGiven(cell) -> digitStyle.copy(color = colors.onSurface, fontWeight = FontWeight.Bold)
                 else -> digitStyle.copy(color = colors.primary)
             }
@@ -215,6 +233,7 @@ private fun Controls(
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onToggleNotes: () -> Unit,
+    onCheck: () -> Unit,
     modifier: Modifier,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -242,16 +261,32 @@ private fun Controls(
                 }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onUndo, enabled = state.canUndo) { Text(stringResource(R.string.undo)) }
-            OutlinedButton(onClick = onRedo, enabled = state.canRedo) { Text(stringResource(R.string.redo)) }
-            val notesModifier = Modifier.semantics { selected = state.notesMode }
-            if (state.notesMode) {
-                Button(onClick = onToggleNotes, notesModifier) { Text(stringResource(R.string.notes)) }
-            } else {
-                OutlinedButton(onClick = onToggleNotes, notesModifier) { Text(stringResource(R.string.notes)) }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val weighted = Modifier.weight(1f)
+            OutlinedButton(onClick = onUndo, weighted, enabled = state.canUndo, contentPadding = PadButtonPadding) {
+                Text(stringResource(R.string.undo), maxLines = 1)
             }
-            OutlinedButton(onClick = onReset) { Text(stringResource(R.string.reset)) }
+            OutlinedButton(onClick = onRedo, weighted, enabled = state.canRedo, contentPadding = PadButtonPadding) {
+                Text(stringResource(R.string.redo), maxLines = 1)
+            }
+            val notesModifier = weighted.semantics { selected = state.notesMode }
+            if (state.notesMode) {
+                Button(onClick = onToggleNotes, notesModifier, contentPadding = PadButtonPadding) {
+                    Text(stringResource(R.string.notes), maxLines = 1)
+                }
+            } else {
+                OutlinedButton(onClick = onToggleNotes, notesModifier, contentPadding = PadButtonPadding) {
+                    Text(stringResource(R.string.notes), maxLines = 1)
+                }
+            }
+            if (state.mistakeMode == MistakeMode.ON_REQUEST) {
+                OutlinedButton(onClick = onCheck, weighted, contentPadding = PadButtonPadding) {
+                    Text(stringResource(R.string.check), maxLines = 1)
+                }
+            }
+            OutlinedButton(onClick = onReset, weighted, contentPadding = PadButtonPadding) {
+                Text(stringResource(R.string.reset), maxLines = 1)
+            }
         }
     }
 }
@@ -268,6 +303,6 @@ private fun GameContentPreview() {
         .toggleNote(Cell(0, 4), 7)
         .toggleNote(Cell(0, 8), 1)
     SudroidTheme {
-        GameContent(GameUiState(board, selected = Cell(1, 1), elapsedSeconds = 83, canUndo = true), {}, {}, {}, {}, {}, {}, {})
+        GameContent(GameUiState(board, selected = Cell(1, 1), elapsedSeconds = 83, canUndo = true), {}, {}, {}, {}, {}, {}, {}, {})
     }
 }

@@ -23,6 +23,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.rlamb.android.sudroid.data.PreferencesSettingsRepository
 import com.rlamb.android.sudroid.data.RoomGameRepository
 import com.rlamb.android.sudroid.ui.SudroidTheme
 import kotlinx.coroutines.MainScope
@@ -33,9 +34,10 @@ class SudroidActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val repository = RoomGameRepository.get(this)
+        val settings = PreferencesSettingsRepository(this)
         setContent {
             SudroidTheme {
-                SudroidApp(repository, saveScope)
+                SudroidApp(repository, settings, saveScope)
             }
         }
     }

@@ -42,7 +42,7 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
 
 ## Gotchas
 
-- **Line endings:** `data.txt` is CRLF. The loader reads `data.txt` line by line, so either ending works, but keep it CRLF to match what old installs ran. Preserve each file's existing line endings when editing, since no `.gitattributes` enforces them.
+- **Line endings:** `data.txt` is CRLF. The loader reads `data.txt` line by line, so either ending works, but keep it CRLF to match what old installs ran. `.gitattributes` marks it and `gradlew.bat` `-text`, so Git never converts them; other files have no rule, so preserve each file's existing line endings when editing.
 - **Old saves:** the old game wrote `resume` into `Current.difficulty` for resumed games and could store times such as `00:0-1`. `MIGRATION_1_2` takes the difficulty from the `Puzzle` table and parses times leniently (`parseElapsed`).
 - **Orientation:** every screen rotates. The game screen has a separate landscape layout; the menu and results screens scroll if they don't fit.
 

@@ -53,7 +53,7 @@ class RoomGameRepository(
     override suspend fun savedDailyGame(epochDay: Long): SavedGame? =
         dao.savedGame(DAILY_SLOT)?.takeIf { it.dailyDay == epochDay }?.toSavedGame()
 
-    override fun hasSavedGame(): Flow<Boolean> = dao.hasSavedGame(REGULAR_SLOT)
+    override fun observeSavedGame(): Flow<SavedGame?> = dao.observeSavedGame(REGULAR_SLOT).map { it?.toSavedGame() }
 
     override suspend fun save(game: SavedGame) = dao.save(
         SavedGameEntity(

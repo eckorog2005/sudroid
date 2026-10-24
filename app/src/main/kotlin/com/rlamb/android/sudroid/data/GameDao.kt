@@ -62,6 +62,9 @@ data class CompletedGameEntity(
     @ColumnInfo(defaultValue = "0") val hints: Int = 0,
 )
 
+private const val SAVED_GAME = "SELECT p.*, s.entries, s.elapsed_seconds, s.notes, s.daily_day, s.hints FROM saved_game s " +
+    "JOIN puzzles p ON p.id = s.puzzle_id WHERE s.slot = :slot"
+
 data class SavedGameWithPuzzle(
     @Embedded val puzzle: PuzzleEntity,
     val entries: String,
@@ -82,14 +85,11 @@ interface GameDao {
     @Query("SELECT * FROM puzzles ORDER BY id LIMIT 1 OFFSET :index")
     suspend fun puzzleAt(index: Int): PuzzleEntity?
 
-    @Query(
-        "SELECT p.*, s.entries, s.elapsed_seconds, s.notes, s.daily_day, s.hints FROM saved_game s " +
-            "JOIN puzzles p ON p.id = s.puzzle_id WHERE s.slot = :slot",
-    )
+    @Query(SAVED_GAME)
     suspend fun savedGame(slot: Int): SavedGameWithPuzzle?
 
-    @Query("SELECT EXISTS(SELECT * FROM saved_game WHERE slot = :slot)")
-    fun hasSavedGame(slot: Int): Flow<Boolean>
+    @Query(SAVED_GAME)
+    fun observeSavedGame(slot: Int): Flow<SavedGameWithPuzzle?>
 
     @Upsert
     suspend fun save(game: SavedGameEntity)

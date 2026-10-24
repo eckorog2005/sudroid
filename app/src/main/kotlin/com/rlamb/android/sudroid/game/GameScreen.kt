@@ -99,6 +99,7 @@ import com.rlamb.android.sudroid.engine.Board
 import com.rlamb.android.sudroid.engine.Cell
 import com.rlamb.android.sudroid.engine.Hint
 import com.rlamb.android.sudroid.ui.SudroidTheme
+import com.rlamb.android.sudroid.ui.label
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -245,11 +246,10 @@ private fun GameTopBar(state: GameUiState, onBack: () -> Unit, onPause: () -> Un
 @Composable
 private fun title(state: GameUiState): String {
     val dailyDay = state.dailyDay
+    val difficulty = state.difficulty
     return when {
         dailyDay != null -> stringResource(R.string.game_title_daily, formatDay(dailyDay))
-        state.difficulty == Difficulty.EASY -> stringResource(R.string.easy)
-        state.difficulty == Difficulty.MEDIUM -> stringResource(R.string.medium)
-        state.difficulty == Difficulty.HARD -> stringResource(R.string.hard)
+        difficulty != null -> stringResource(difficulty.label)
         else -> ""
     }
 }

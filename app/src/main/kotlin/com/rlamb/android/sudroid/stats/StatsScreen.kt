@@ -46,6 +46,7 @@ import com.rlamb.android.sudroid.R
 import com.rlamb.android.sudroid.game.Difficulty
 import com.rlamb.android.sudroid.game.formatElapsed
 import com.rlamb.android.sudroid.ui.SudroidTheme
+import com.rlamb.android.sudroid.ui.label
 
 @Composable
 fun StatsScreen(stats: Stats, onBackToMenu: () -> Unit) {
@@ -69,9 +70,9 @@ fun StatsScreen(stats: Stats, onBackToMenu: () -> Unit) {
                 StatRow(stringResource(R.string.stats_current_streak), days(stats.dailyCurrentStreak))
                 StatRow(stringResource(R.string.stats_longest_streak), days(stats.dailyLongestStreak))
             }
-            for ((difficulty, label) in DifficultyLabels) {
+            for (difficulty in Difficulty.entries) {
                 val entry = stats.byDifficulty.getValue(difficulty)
-                StatsCard(stringResource(label)) {
+                StatsCard(stringResource(difficulty.label)) {
                     StatRow(stringResource(R.string.stats_completed), entry.completed.toString())
                     StatRow(stringResource(R.string.stats_without_hints), entry.withoutHints.toString())
                     StatRow(stringResource(R.string.stats_best_time), time(entry.bestSeconds))
@@ -112,12 +113,6 @@ private fun days(count: Int) = pluralStringResource(R.plurals.stats_days, count,
 
 @Composable
 private fun time(seconds: Int?) = seconds?.let(::formatElapsed) ?: stringResource(R.string.stats_no_time)
-
-private val DifficultyLabels = listOf(
-    Difficulty.EASY to R.string.easy,
-    Difficulty.MEDIUM to R.string.medium,
-    Difficulty.HARD to R.string.hard,
-)
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 1040)
 @Composable

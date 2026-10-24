@@ -35,7 +35,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.TimeZone
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -106,11 +105,11 @@ class SudroidDatabaseTest {
         repository.save(first)
         repository.save(second)
         assertEquals(second, repository.savedGame())
-        assertTrue(repository.hasSavedGame().first())
+        assertEquals(second, repository.observeSavedGame().first())
 
         repository.deleteSavedGame()
         assertNull(repository.savedGame())
-        assertFalse(repository.hasSavedGame().first())
+        assertNull(repository.observeSavedGame().first())
     }
 
     @Test
@@ -147,7 +146,7 @@ class SudroidDatabaseTest {
         repository.completeGame(daily.puzzle, elapsedSeconds = 300, dailyDay = DAY)
         assertNull(repository.savedDailyGame(DAY))
         assertEquals(regular, repository.savedGame())
-        assertTrue(repository.hasSavedGame().first())
+        assertEquals(regular, repository.observeSavedGame().first())
     }
 
     @Test

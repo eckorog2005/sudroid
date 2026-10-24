@@ -87,4 +87,4 @@ Merged 2026-10-24.
 - [x] Hints explain locked candidates, chaining steps until one reveals a single ([#27](https://github.com/eckorog2005/sudroid/pull/27))
 - [x] Count hints: hinted games still count as completed and keep streaks, but only hint-free games set best and average times ([#28](https://github.com/eckorog2005/sudroid/pull/28))
 - [x] Game screen polish: a top bar with Back, the difficulty or daily date, and the timer; icons on the action buttons; Reset asks first; givens are never marked as mistakes; the menu's mistake options are centered ([#30](https://github.com/eckorog2005/sudroid/pull/30))
-- [x] Number pad: notes mode tints the digits and draws them small, every pad button in a row is the same height, and pencil marks on the board are larger
+- [x] Number pad: notes mode tints the digits and draws them small, every pad button in a row is the same height, and pencil marks on the board are larger ([#31](https://github.com/eckorog2005/sudroid/pull/31))

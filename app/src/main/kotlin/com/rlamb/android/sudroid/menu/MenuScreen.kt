@@ -20,6 +20,7 @@
 package com.rlamb.android.sudroid.menu
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -99,7 +101,7 @@ fun MenuScreen(
             OutlinedButton(onClick = onStats, ButtonModifier) { Text(stringResource(R.string.stats)) }
             Spacer(Modifier.height(8.dp))
             Text(stringResource(R.string.mistakes), style = MaterialTheme.typography.titleMedium)
-            Column(Modifier.widthIn(min = 200.dp).selectableGroup()) {
+            Column(Modifier.widthIn(min = 200.dp).width(IntrinsicSize.Max).selectableGroup()) {
                 for ((mode, label) in MistakeLabels) {
                     Row(
                         Modifier.fillMaxWidth().heightIn(min = 48.dp)

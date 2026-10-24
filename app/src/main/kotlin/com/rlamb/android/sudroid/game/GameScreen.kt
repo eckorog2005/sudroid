@@ -31,18 +31,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -444,7 +447,7 @@ private fun BoardCanvas(
         if (flashAlpha > 0f) completed.forEach { highlight(it, colors.primary.copy(alpha = 0.45f * flashAlpha)) }
 
         val fontSize = (cellSize * 0.6f).toSp()
-        val noteStyle = digitStyle.copy(color = colors.onSurfaceVariant, fontSize = (cellSize * 0.22f).toSp())
+        val noteStyle = digitStyle.copy(color = colors.onSurfaceVariant, fontSize = (cellSize * 0.27f).toSp())
         val noteSize = cellSize / 3
         for (cell in Cell.ALL) {
             val digit = board.digitAt(cell)
@@ -518,24 +521,36 @@ private fun Controls(
     val playing = !state.paused
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         for (digits in listOf(1..5, 6..9)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (digit in digits) {
                     val remaining = state.board?.remaining(digit) ?: 0
-                    val description = stringResource(R.string.digit_remaining, digit, remaining)
+                    val description = stringResource(
+                        if (state.notesMode) R.string.note_remaining else R.string.digit_remaining,
+                        digit,
+                        remaining,
+                    )
                     FilledTonalButton(
                         onClick = { onDigit(digit) },
-                        Modifier.weight(1f).semantics { contentDescription = description },
+                        Modifier.weight(1f).fillMaxHeight().semantics { contentDescription = description },
                         enabled = playing && remaining > 0,
+                        colors = if (state.notesMode) {
+                            ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                            )
+                        } else {
+                            ButtonDefaults.filledTonalButtonColors()
+                        },
                         contentPadding = PadButtonPadding,
                     ) {
                         Column(Modifier.clearAndSetSemantics {}, horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(digit.toString(), style = MaterialTheme.typography.titleLarge)
+                            DigitLabel(digit, small = state.notesMode)
                             Text(remaining.toString(), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
                 if (digits.last == 9) {
-                    PadAction(R.drawable.ic_backspace, stringResource(R.string.erase), onErase, Modifier.weight(1f), playing)
+                    PadAction(R.drawable.ic_backspace, stringResource(R.string.erase), onErase, Modifier.weight(1f).fillMaxHeight(), playing)
                 }
             }
         }
@@ -580,6 +595,16 @@ private fun PadAction(
     } else {
         OutlinedButton(onClick, modifier, enabled, contentPadding = PadButtonPadding) { content() }
     }
+}
+
+/** In notes mode the digit shrinks like a pencil mark, keeping its line height so the pad doesn't move. */
+@Composable
+private fun DigitLabel(digit: Int, small: Boolean) {
+    val style = MaterialTheme.typography.titleLarge
+    Text(
+        digit.toString(),
+        style = if (small) style.copy(fontSize = MaterialTheme.typography.titleSmall.fontSize) else style,
+    )
 }
 
 /** Shrinks to fit its button, so large system font sizes don't clip the label. */

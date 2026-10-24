@@ -339,6 +339,56 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `the clock stops while paused and pausing saves the time`() = runTest {
+        val viewModel = newGame()
+        val clock = launch { viewModel.runClock() }
+        advanceTimeBy(2_500)
+
+        viewModel.pause()
+        advanceTimeBy(10_000)
+        assertEquals(2, viewModel.state.value.elapsedSeconds)
+        assertEquals(2, repository.saved?.elapsedSeconds)
+
+        viewModel.unpause()
+        advanceTimeBy(1_500)
+        clock.cancel()
+        assertEquals(3, viewModel.state.value.elapsedSeconds)
+    }
+
+    @Test
+    fun `moves are ignored while paused`() = runTest {
+        val viewModel = newGame()
+        viewModel.select(Cell(0, 0))
+        viewModel.enter(4)
+
+        viewModel.pause()
+        viewModel.select(Cell(1, 1))
+        viewModel.enter(5)
+        viewModel.erase()
+        viewModel.undo()
+        viewModel.hint()
+        viewModel.reset()
+
+        val state = viewModel.state.value
+        assertTrue(state.paused)
+        assertEquals(Cell(0, 0), state.selected)
+        assertEquals("4" + EMPTY_ENTRIES.drop(1), state.board?.entriesString())
+        viewModel.unpause()
+        viewModel.undo()
+        assertEquals(EMPTY_ENTRIES, viewModel.state.value.board?.entriesString())
+    }
+
+    @Test
+    fun `a paused game stays paused after process death`() = runTest {
+        val savedState = SavedStateHandle()
+        GameViewModel(repository, GameRequest.New(Difficulty.EASY), saveScope, savedState).pause()
+
+        val restored = GameViewModel(repository, GameRequest.New(Difficulty.EASY), saveScope, savedState)
+
+        assertTrue(restored.state.value.paused)
+    }
+
+    @Test
     fun `the clock resumes from the saved time`() = runTest {
         repository.saved = SavedGame(PUZZLE, EMPTY_ENTRIES, elapsedSeconds = 75)
         val viewModel = GameViewModel(repository, GameRequest.Resume, saveScope, SavedStateHandle())

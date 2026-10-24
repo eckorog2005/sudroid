@@ -51,6 +51,8 @@ data class GameUiState(
     val checking: Boolean = false,
     /** The hint just given, so the screen can explain it; the next move, undo or redo clears it. */
     val hint: Hint? = null,
+    /** While paused the board is hidden, the clock stops and moves are ignored. */
+    val paused: Boolean = false,
 ) {
     val isSolved: Boolean = board?.isSolved == true
     val showMistakes: Boolean = mistakeMode == MistakeMode.ALWAYS || (mistakeMode == MistakeMode.ON_REQUEST && checking)
@@ -64,7 +66,7 @@ class GameViewModel(
     private val savedState: SavedStateHandle,
     mistakeMode: MistakeMode = MistakeMode.ALWAYS,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(GameUiState(mistakeMode = mistakeMode))
+    private val _state = MutableStateFlow(GameUiState(mistakeMode = mistakeMode, paused = savedState.get<Boolean>(PAUSED) == true))
     val state: StateFlow<GameUiState> = _state.asStateFlow()
 
     private lateinit var puzzle: Puzzle
@@ -116,6 +118,7 @@ class GameViewModel(
     }
 
     fun select(cell: Cell) {
+        if (state.value.paused) return
         _state.update { it.copy(selected = cell) }
     }
 
@@ -137,7 +140,7 @@ class GameViewModel(
     fun hint() {
         val current = state.value
         val board = current.board ?: return
-        if (current.isSolved) return
+        if (current.isSolved || current.paused) return
         val hint = Solver.hint(board, current.selected) ?: return
         select(hint.cell)
         move { it.place(hint.cell, hint.digit) }
@@ -146,21 +149,33 @@ class GameViewModel(
 
     fun reset() = move { it.reset() }
 
+    fun pause() = setPaused(true)
+
+    fun unpause() = setPaused(false)
+
     fun undo() = step(from = undoStack, to = redoStack)
 
     fun redo() = step(from = redoStack, to = undoStack)
 
-    /** Counts up once a second until the puzzle is solved; run it only while the screen is visible. */
+    /** Counts up once a second, except while paused, until the puzzle is solved; run it only while the screen is visible. */
     suspend fun runClock() {
         state.first { it.board != null }
         try {
             while (!state.value.isSolved) {
+                state.first { !it.paused }
                 delay(1.seconds)
-                _state.update { if (it.isSolved) it else it.copy(elapsedSeconds = it.elapsedSeconds + 1) }
+                _state.update { if (it.isSolved || it.paused) it else it.copy(elapsedSeconds = it.elapsedSeconds + 1) }
             }
         } finally {
             save()
         }
+    }
+
+    private fun setPaused(paused: Boolean) {
+        if (state.value.board == null || state.value.isSolved || state.value.paused == paused) return
+        savedState[PAUSED] = paused
+        _state.update { it.copy(paused = paused) }
+        if (paused) save()
     }
 
     private fun moveOnSelected(change: (Board, Cell) -> Board) {
@@ -171,7 +186,7 @@ class GameViewModel(
     private fun move(change: (Board) -> Board) {
         val current = state.value
         val board = current.board ?: return
-        if (current.isSolved) return
+        if (current.isSolved || current.paused) return
         val next = change(board)
         if (next === board) return
         undoStack.addLast(board)
@@ -181,7 +196,7 @@ class GameViewModel(
 
     private fun step(from: ArrayDeque<Board>, to: ArrayDeque<Board>) {
         val board = state.value.board ?: return
-        if (state.value.isSolved || from.isEmpty()) return
+        if (state.value.isSolved || state.value.paused || from.isEmpty()) return
         to.addLast(board)
         show(from.removeLast())
     }
@@ -210,5 +225,6 @@ class GameViewModel(
     private companion object {
         const val STARTED = "started"
         const val DAILY_DAY = "dailyDay"
+        const val PAUSED = "paused"
     }
 }

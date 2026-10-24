@@ -21,6 +21,7 @@ package com.rlamb.android.sudroid.game
 
 import android.content.res.Resources
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,6 +45,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -99,6 +101,8 @@ fun GameScreen(viewModel: GameViewModel, onSolved: (elapsedSeconds: Int) -> Unit
         onToggleNotes = viewModel::toggleNotesMode,
         onCheck = viewModel::checkMistakes,
         onHint = viewModel::hint,
+        onPause = viewModel::pause,
+        onUnpause = viewModel::unpause,
     )
 }
 
@@ -114,6 +118,8 @@ private fun GameContent(
     onToggleNotes: () -> Unit,
     onCheck: () -> Unit,
     onHint: () -> Unit,
+    onPause: () -> Unit,
+    onUnpause: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val resources = LocalResources.current
@@ -132,10 +138,14 @@ private fun GameContent(
                 return@BoxWithConstraints
             }
             val sudokuBoard = @Composable { modifier: Modifier ->
-                SudokuBoard(board, state.selected, state.showMistakes, onSelect, modifier)
+                if (state.paused) {
+                    PausedPanel(onUnpause, modifier)
+                } else {
+                    SudokuBoard(board, state.selected, state.showMistakes, onSelect, modifier)
+                }
             }
             val controls = @Composable { modifier: Modifier ->
-                Controls(state, onDigit, onErase, onReset, onUndo, onRedo, onToggleNotes, onCheck, onHint, modifier)
+                Controls(state, onDigit, onErase, onReset, onUndo, onRedo, onToggleNotes, onCheck, onHint, onPause, onUnpause, modifier)
             }
             if (maxWidth > maxHeight) {
                 Row(
@@ -154,6 +164,17 @@ private fun GameContent(
                     controls(Modifier.widthIn(max = MaxControlsWidth).fillMaxWidth())
                 }
             }
+        }
+    }
+}
+
+/** Takes the board's place while paused, so the puzzle can't be studied with the clock stopped. */
+@Composable
+private fun PausedPanel(onUnpause: () -> Unit, modifier: Modifier) {
+    Box(modifier.background(MaterialTheme.colorScheme.surfaceContainerLow), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(stringResource(R.string.paused), style = MaterialTheme.typography.headlineSmall)
+            Button(onClick = onUnpause) { Text(stringResource(R.string.unpause)) }
         }
     }
 }
@@ -330,10 +351,18 @@ private fun Controls(
     onToggleNotes: () -> Unit,
     onCheck: () -> Unit,
     onHint: () -> Unit,
+    onPause: () -> Unit,
+    onUnpause: () -> Unit,
     modifier: Modifier,
 ) {
+    val playing = !state.paused
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(formatElapsed(state.elapsedSeconds), style = MaterialTheme.typography.titleLarge)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(formatElapsed(state.elapsedSeconds), style = MaterialTheme.typography.titleLarge)
+            TextButton(onClick = if (playing) onPause else onUnpause) {
+                Text(stringResource(if (playing) R.string.pause else R.string.unpause))
+            }
+        }
         for (digits in listOf(1..5, 6..9)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (digit in digits) {
@@ -342,7 +371,7 @@ private fun Controls(
                     FilledTonalButton(
                         onClick = { onDigit(digit) },
                         Modifier.weight(1f).semantics { contentDescription = description },
-                        enabled = remaining > 0,
+                        enabled = playing && remaining > 0,
                         contentPadding = PadButtonPadding,
                     ) {
                         Column(Modifier.clearAndSetSemantics {}, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -352,7 +381,7 @@ private fun Controls(
                     }
                 }
                 if (digits.last == 9) {
-                    OutlinedButton(onClick = onErase, Modifier.weight(1f), contentPadding = PadButtonPadding) {
+                    OutlinedButton(onClick = onErase, Modifier.weight(1f), enabled = playing, contentPadding = PadButtonPadding) {
                         PadLabel(stringResource(R.string.erase))
                     }
                 }
@@ -360,31 +389,31 @@ private fun Controls(
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             val weighted = Modifier.weight(1f)
-            OutlinedButton(onClick = onUndo, weighted, enabled = state.canUndo, contentPadding = PadButtonPadding) {
+            OutlinedButton(onClick = onUndo, weighted, enabled = playing && state.canUndo, contentPadding = PadButtonPadding) {
                 PadLabel(stringResource(R.string.undo))
             }
-            OutlinedButton(onClick = onRedo, weighted, enabled = state.canRedo, contentPadding = PadButtonPadding) {
+            OutlinedButton(onClick = onRedo, weighted, enabled = playing && state.canRedo, contentPadding = PadButtonPadding) {
                 PadLabel(stringResource(R.string.redo))
             }
             val notesModifier = weighted.semantics { selected = state.notesMode }
             if (state.notesMode) {
-                Button(onClick = onToggleNotes, notesModifier, contentPadding = PadButtonPadding) {
+                Button(onClick = onToggleNotes, notesModifier, enabled = playing, contentPadding = PadButtonPadding) {
                     PadLabel(stringResource(R.string.notes))
                 }
             } else {
-                OutlinedButton(onClick = onToggleNotes, notesModifier, contentPadding = PadButtonPadding) {
+                OutlinedButton(onClick = onToggleNotes, notesModifier, enabled = playing, contentPadding = PadButtonPadding) {
                     PadLabel(stringResource(R.string.notes))
                 }
             }
             if (state.mistakeMode == MistakeMode.ON_REQUEST) {
-                OutlinedButton(onClick = onCheck, weighted, contentPadding = PadButtonPadding) {
+                OutlinedButton(onClick = onCheck, weighted, enabled = playing, contentPadding = PadButtonPadding) {
                     PadLabel(stringResource(R.string.check))
                 }
             }
-            OutlinedButton(onClick = onHint, weighted, contentPadding = PadButtonPadding) {
+            OutlinedButton(onClick = onHint, weighted, enabled = playing, contentPadding = PadButtonPadding) {
                 PadLabel(stringResource(R.string.hint))
             }
-            OutlinedButton(onClick = onReset, weighted, contentPadding = PadButtonPadding) {
+            OutlinedButton(onClick = onReset, weighted, enabled = playing, contentPadding = PadButtonPadding) {
                 PadLabel(stringResource(R.string.reset))
             }
         }
@@ -415,6 +444,6 @@ private fun GameContentPreview() {
         .toggleNote(Cell(0, 4), 7)
         .toggleNote(Cell(0, 8), 1)
     SudroidTheme {
-        GameContent(GameUiState(board, selected = Cell(1, 1), elapsedSeconds = 83, canUndo = true), {}, {}, {}, {}, {}, {}, {}, {}, {})
+        GameContent(GameUiState(board, selected = Cell(1, 1), elapsedSeconds = 83, canUndo = true), {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
     }
 }

@@ -74,6 +74,6 @@ Existing bugs this step fixes:
 
 ## Unscheduled
 
-- [ ] Pause screen that hides the board
+- [x] Pause screen that hides the board: a Pause button by the timer swaps the board for a Paused panel, stops the clock and disables the controls, and the pause survives process death
 - [ ] Haptics on input, an animation when a row, column or box is completed, and a celebration on finishing
 - [x] `.gitattributes` to keep the CRLF line endings in `data.txt` (and `gradlew.bat`), marked `-text` so no checkout converts them

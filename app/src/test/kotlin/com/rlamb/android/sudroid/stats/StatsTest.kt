@@ -49,6 +49,18 @@ class StatsTest {
     }
 
     @Test
+    fun `hinted games count as completed and keep streaks but set no times`() {
+        val stats = statsOf(
+            listOf(easy(100).copy(hints = 1), easy(300), Completion(Difficulty.HARD, 50, TODAY - 1, hints = 3)),
+            TODAY,
+        )
+
+        assertEquals(DifficultyStats(2, bestSeconds = 300, averageSeconds = 300, withoutHints = 1), stats.byDifficulty[Difficulty.EASY])
+        assertEquals(DifficultyStats(1, withoutHints = 0), stats.byDifficulty[Difficulty.HARD])
+        assertEquals(2, stats.currentStreak)
+    }
+
+    @Test
     fun `several games on one day count as one streak day`() {
         val stats = statsOf(listOf(easy(day = TODAY), easy(day = TODAY), easy(day = TODAY - 1)), TODAY)
 

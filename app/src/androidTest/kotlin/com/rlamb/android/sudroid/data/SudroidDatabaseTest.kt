@@ -230,6 +230,7 @@ class SudroidDatabaseTest {
         SudroidDatabase.build(context, NAME).apply { openHelper.writableDatabase }.close()
         SQLiteDatabase.openDatabase(context.getDatabasePath(NAME).path, null, 0).use { db ->
             db.execSQL("DELETE FROM puzzles WHERE id > 450")
+            createVersion5Games(db)
             db.execSQL("INSERT INTO saved_game VALUES (0, 12, '$ENTRIES', 30, '$NOTES', NULL)")
             db.version = 5
         }
@@ -242,6 +243,49 @@ class SudroidDatabaseTest {
             .query("SELECT difficulty, digits FROM puzzles WHERE id = ?", arrayOf(id.toInt()))
             .use { it.moveToFirst(); it.getString(0) to it.getString(1) }
         assertEquals(difficulty to digits, first)
+    }
+
+    @Test
+    fun upgradeFromVersion6KeepsGamesAndCountsNoHints() = runBlocking {
+        SudroidDatabase.build(context, NAME).apply { openHelper.writableDatabase }.close()
+        SQLiteDatabase.openDatabase(context.getDatabasePath(NAME).path, null, 0).use { db ->
+            createVersion5Games(db)
+            db.execSQL("INSERT INTO saved_game VALUES (0, 12, '$ENTRIES', 30, '$NOTES', NULL)")
+            db.execSQL("INSERT INTO completed_games (puzzle_id, difficulty, elapsed_seconds, completed_at) VALUES (5, 'EASY', 90, 0)")
+            db.version = 6
+        }
+        val repository = repository()
+
+        assertEquals(0, repository.savedGame()?.hints)
+        assertEquals(DifficultyStats(1, bestSeconds = 90, averageSeconds = 90), repository.stats().first().byDifficulty[Difficulty.EASY])
+    }
+
+    @Test
+    fun hintsAreSavedAndKeepHintedTimesOutOfTheRecords() = runBlocking {
+        val repository = repository()
+        val easy = repository.randomPuzzle(Difficulty.EASY)
+        repository.save(SavedGame(easy, ENTRIES, elapsedSeconds = 1, hints = 2))
+        assertEquals(2, repository.savedGame()?.hints)
+
+        repository.completeGame(easy, elapsedSeconds = 100, hints = 2)
+        repository.completeGame(easy, elapsedSeconds = 300)
+
+        val stats = repository.stats().first().byDifficulty.getValue(Difficulty.EASY)
+        assertEquals(DifficultyStats(2, bestSeconds = 300, averageSeconds = 300, withoutHints = 1), stats)
+    }
+
+    /** Replaces the game tables with their version 5 and 6 shape, before the hints columns. */
+    private fun createVersion5Games(db: SQLiteDatabase) {
+        db.execSQL("DROP TABLE saved_game")
+        db.execSQL("DROP TABLE completed_games")
+        db.execSQL(
+            "CREATE TABLE `saved_game` (`slot` INTEGER NOT NULL, `puzzle_id` INTEGER NOT NULL, `entries` TEXT NOT NULL, " +
+                "`elapsed_seconds` INTEGER NOT NULL, `notes` TEXT NOT NULL DEFAULT '', `daily_day` INTEGER, PRIMARY KEY(`slot`))",
+        )
+        db.execSQL(
+            "CREATE TABLE `completed_games` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `puzzle_id` INTEGER NOT NULL, " +
+                "`difficulty` TEXT NOT NULL, `elapsed_seconds` INTEGER NOT NULL, `completed_at` INTEGER NOT NULL, `daily_day` INTEGER)",
+        )
     }
 
     /** Builds the database the way the original SQLiteOpenHelper did and returns puzzle 12's pattern. */

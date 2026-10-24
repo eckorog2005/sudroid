@@ -30,11 +30,12 @@ import com.rlamb.android.sudroid.game.parseElapsed
 
 @Database(
     entities = [PuzzleEntity::class, SavedGameEntity::class, CompletedGameEntity::class],
-    version = 6,
+    version = 7,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
         AutoMigration(from = 3, to = 4),
         AutoMigration(from = 4, to = 5),
+        AutoMigration(from = 6, to = 7),
     ],
 )
 abstract class SudroidDatabase : RoomDatabase() {

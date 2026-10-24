@@ -63,25 +63,27 @@ class RoomGameRepository(
             elapsedSeconds = game.elapsedSeconds,
             notes = game.notes,
             dailyDay = game.dailyDay,
+            hints = game.hints,
         ),
     )
 
     override suspend fun deleteSavedGame() = dao.deleteSavedGame(REGULAR_SLOT)
 
-    override suspend fun completeGame(puzzle: Puzzle, elapsedSeconds: Int, dailyDay: Long?) = dao.completeGame(
+    override suspend fun completeGame(puzzle: Puzzle, elapsedSeconds: Int, dailyDay: Long?, hints: Int) = dao.completeGame(
         CompletedGameEntity(
             puzzleId = puzzle.id,
             difficulty = puzzle.difficulty,
             elapsedSeconds = elapsedSeconds,
             completedAt = now(),
             dailyDay = dailyDay,
+            hints = hints,
         ),
         slotOf(dailyDay),
     )
 
     // Days come from the time zone in effect now, so a streak follows the player when they travel.
     override fun stats(): Flow<Stats> = dao.completedGames().map { games ->
-        val completions = games.map { Completion(it.difficulty, it.elapsedSeconds, epochDay(it.completedAt), it.dailyDay) }
+        val completions = games.map { Completion(it.difficulty, it.elapsedSeconds, epochDay(it.completedAt), it.dailyDay, it.hints) }
         statsOf(completions, today())
     }
 
@@ -89,7 +91,7 @@ class RoomGameRepository(
 
     private fun PuzzleEntity.toPuzzle() = Puzzle(id, difficulty, digits)
 
-    private fun SavedGameWithPuzzle.toSavedGame() = SavedGame(puzzle.toPuzzle(), entries, elapsedSeconds, notes, dailyDay)
+    private fun SavedGameWithPuzzle.toSavedGame() = SavedGame(puzzle.toPuzzle(), entries, elapsedSeconds, notes, dailyDay, hints)
 
     private fun slotOf(dailyDay: Long?) = if (dailyDay == null) REGULAR_SLOT else DAILY_SLOT
 

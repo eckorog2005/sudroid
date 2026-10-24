@@ -27,10 +27,24 @@ import kotlin.math.roundToInt
  * [epochDay] is the local calendar day the game was finished on, counted from 1970-01-01.
  * [dailyDay] is the day of the daily challenge it solved, or null for a regular game.
  */
-data class Completion(val difficulty: Difficulty, val elapsedSeconds: Int, val epochDay: Long, val dailyDay: Long? = null)
+data class Completion(
+    val difficulty: Difficulty,
+    val elapsedSeconds: Int,
+    val epochDay: Long,
+    val dailyDay: Long? = null,
+    val hints: Int = 0,
+)
 
-/** The times are null until a game of that difficulty has been completed. */
-data class DifficultyStats(val completed: Int = 0, val bestSeconds: Int? = null, val averageSeconds: Int? = null)
+/**
+ * The times come only from games solved without hints, so a hinted time can't set a record; they
+ * are null until there is one.
+ */
+data class DifficultyStats(
+    val completed: Int = 0,
+    val bestSeconds: Int? = null,
+    val averageSeconds: Int? = null,
+    val withoutHints: Int = completed,
+)
 
 /**
  * Streaks count consecutive days with at least one completed game, of any difficulty. Daily streaks
@@ -54,8 +68,9 @@ interface StatsRepository {
 /** A streak is still current if its last day is [today] or yesterday, since today's game may not be played yet. */
 fun statsOf(completions: List<Completion>, today: Long): Stats {
     val byDifficulty = Difficulty.entries.associateWith { difficulty ->
-        val times = completions.filter { it.difficulty == difficulty }.map { it.elapsedSeconds }
-        DifficultyStats(times.size, times.minOrNull(), times.takeIf { it.isNotEmpty() }?.average()?.roundToInt())
+        val games = completions.filter { it.difficulty == difficulty }
+        val times = games.filter { it.hints == 0 }.map { it.elapsedSeconds }
+        DifficultyStats(games.size, times.minOrNull(), times.takeIf { it.isNotEmpty() }?.average()?.roundToInt(), times.size)
     }
     val streak = streakOf(completions.map { it.epochDay }, today)
     val dailyDays = completions.mapNotNull { it.dailyDay }

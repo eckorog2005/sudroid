@@ -57,14 +57,19 @@
     <string name="cell_entry">Row %1$d, column %2$d, %3$d</string>
     <string name="cell_conflict">%1$s, conflicts with another cell</string>
     <string name="digit_remaining">%1$d, %2$d left</string>
+    <plurals name="results_hints">
+        <item quantity="one">Solved with %d hint, so this time doesn\'t count toward your best.</item>
+        <item quantity="other">Solved with %d hints, so this time doesn\'t count toward your best.</item>
+    </plurals>
     <string name="final_message">You finished the puzzle with a time of:</string>
     <string name="backMenu">Back to Main</string>
     <string name="stats">Statistics</string>
     <string name="stats_completed">Games completed</string>
     <string name="stats_current_streak">Current streak</string>
     <string name="stats_longest_streak">Longest streak</string>
-    <string name="stats_best_time">Best time</string>
-    <string name="stats_average_time">Average time</string>
+    <string name="stats_without_hints">Solved without hints</string>
+    <string name="stats_best_time">Best time without hints</string>
+    <string name="stats_average_time">Average time without hints</string>
     <string name="stats_no_time">None yet</string>
     <plurals name="stats_days">
         <item quantity="one">%d day</item>

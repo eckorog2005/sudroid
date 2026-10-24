@@ -76,4 +76,4 @@ Existing bugs this step fixes:
 
 - [ ] Pause screen that hides the board
 - [ ] Haptics on input, an animation when a row, column or box is completed, and a celebration on finishing
-- [ ] `.gitattributes` to keep the CRLF line endings in `data.txt`
+- [x] `.gitattributes` to keep the CRLF line endings in `data.txt` (and `gradlew.bat`), marked `-text` so no checkout converts them

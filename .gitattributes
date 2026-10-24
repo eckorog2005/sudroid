@@ -1,0 +1,4 @@
+# Stored as CRLF and must stay byte for byte: old installs ran data.txt with CRLF, and
+# SudroidDatabaseTest splits it on "\r\n". -text stops any checkout from converting them.
+/app/src/main/assets/data.txt -text
+/gradlew.bat -text

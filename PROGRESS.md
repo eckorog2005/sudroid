@@ -86,3 +86,4 @@ Merged 2026-10-24.
 
 - [x] Hints explain locked candidates, chaining steps until one reveals a single ([#27](https://github.com/eckorog2005/sudroid/pull/27))
 - [x] Count hints: hinted games still count as completed and keep streaks, but only hint-free games set best and average times ([#28](https://github.com/eckorog2005/sudroid/pull/28))
+- [x] Game screen polish: a top bar with Back, the difficulty or daily date, and the timer; icons on the action buttons; Reset asks first; givens are never marked as mistakes; the menu's mistake options are centered ([#30](https://github.com/eckorog2005/sudroid/pull/30))

@@ -91,6 +91,7 @@ fun SudroidApp(
                     viewModel = viewModel {
                         GameViewModel(repository, key.request, saveScope, createSavedStateHandle(), settings.mistakeMode.value)
                     },
+                    onBack = { backStack.removeLastOrNull() },
                     onSolved = { elapsedSeconds, hints ->
                         // Replacing the game keeps Back from returning to a finished board.
                         if (backStack.lastOrNull() == key) backStack[backStack.lastIndex] = Results(elapsedSeconds, hints)

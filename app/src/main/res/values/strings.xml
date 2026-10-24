@@ -21,6 +21,11 @@
     <string name="pause">Pause</string>
     <string name="unpause">Resume</string>
     <string name="paused">Paused</string>
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
+    <string name="game_title_daily">Daily · %1$s</string>
+    <string name="reset_title">Start over?</string>
+    <string name="reset_message">This clears every entry and note. Undo can bring them back.</string>
     <string name="hint_mistake">Mistake at row %2$d, column %3$d: the answer is %4$d, not %1$d.</string>
     <string name="hint_naked_single">%1$d at row %2$d, column %3$d: its row, column and box already hold every other digit.</string>
     <string name="hint_hidden_single_row">%1$d at row %2$d, column %3$d: no other cell in its row can take %1$d.</string>

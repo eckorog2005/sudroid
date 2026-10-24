@@ -20,6 +20,8 @@
 package com.rlamb.android.sudroid.game
 
 import android.content.res.Resources
+import android.text.format.DateFormat
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -36,11 +38,16 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -49,10 +56,14 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -62,6 +73,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -84,9 +96,13 @@ import com.rlamb.android.sudroid.engine.Board
 import com.rlamb.android.sudroid.engine.Cell
 import com.rlamb.android.sudroid.engine.Hint
 import com.rlamb.android.sudroid.ui.SudroidTheme
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 @Composable
-fun GameScreen(viewModel: GameViewModel, onSolved: (elapsedSeconds: Int, hints: Int) -> Unit) {
+fun GameScreen(viewModel: GameViewModel, onBack: () -> Unit, onSolved: (elapsedSeconds: Int, hints: Int) -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(viewModel, lifecycleOwner) {
@@ -101,6 +117,7 @@ fun GameScreen(viewModel: GameViewModel, onSolved: (elapsedSeconds: Int, hints: 
     }
     GameContent(
         state = state,
+        onBack = onBack,
         onSelect = viewModel::select,
         onDigit = {
             haptics.performHapticFeedback(HapticFeedbackType.KeyboardTap)
@@ -124,6 +141,7 @@ fun GameScreen(viewModel: GameViewModel, onSolved: (elapsedSeconds: Int, hints: 
 @Composable
 private fun GameContent(
     state: GameUiState,
+    onBack: () -> Unit,
     onSelect: (Cell) -> Unit,
     onDigit: (Int) -> Unit,
     onErase: () -> Unit,
@@ -144,7 +162,20 @@ private fun GameContent(
             snackbarHostState.showSnackbar(explain(resources, it), withDismissAction = true, duration = SnackbarDuration.Long)
         }
     }
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { insets ->
+    var confirmingReset by rememberSaveable { mutableStateOf(false) }
+    if (confirmingReset) {
+        ResetDialog(
+            onConfirm = {
+                confirmingReset = false
+                onReset()
+            },
+            onDismiss = { confirmingReset = false },
+        )
+    }
+    Scaffold(
+        topBar = { GameTopBar(state, onBack, onPause, onUnpause) },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) { insets ->
         BoxWithConstraints(
             Modifier.fillMaxSize().padding(insets).padding(16.dp),
             contentAlignment = Alignment.Center,
@@ -162,7 +193,7 @@ private fun GameContent(
                 }
             }
             val controls = @Composable { modifier: Modifier ->
-                Controls(state, onDigit, onErase, onReset, onUndo, onRedo, onToggleNotes, onCheck, onHint, onPause, onUnpause, modifier)
+                Controls(state, onDigit, onErase, { confirmingReset = true }, onUndo, onRedo, onToggleNotes, onCheck, onHint, modifier)
             }
             if (maxWidth > maxHeight) {
                 Row(
@@ -183,6 +214,60 @@ private fun GameContent(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GameTopBar(state: GameUiState, onBack: () -> Unit, onPause: () -> Unit, onUnpause: () -> Unit) {
+    TopAppBar(
+        title = { Text(title(state), maxLines = 1) },
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.back))
+            }
+        },
+        actions = {
+            if (state.board != null) {
+                Text(formatElapsed(state.elapsedSeconds), style = MaterialTheme.typography.titleLarge)
+                if (state.paused) {
+                    IconButton(onClick = onUnpause) { Icon(painterResource(R.drawable.ic_play), stringResource(R.string.unpause)) }
+                } else {
+                    IconButton(onClick = onPause) { Icon(painterResource(R.drawable.ic_pause), stringResource(R.string.pause)) }
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun title(state: GameUiState): String {
+    val dailyDay = state.dailyDay
+    return when {
+        dailyDay != null -> stringResource(R.string.game_title_daily, formatDay(dailyDay))
+        state.difficulty == Difficulty.EASY -> stringResource(R.string.easy)
+        state.difficulty == Difficulty.MEDIUM -> stringResource(R.string.medium)
+        state.difficulty == Difficulty.HARD -> stringResource(R.string.hard)
+        else -> ""
+    }
+}
+
+// Epoch days count local calendar days, so the day's midnight in UTC formats as that date.
+private fun formatDay(epochDay: Long): String {
+    val locale = Locale.getDefault()
+    val format = SimpleDateFormat(DateFormat.getBestDateTimePattern(locale, "MMMd"), locale)
+    format.timeZone = TimeZone.getTimeZone("UTC")
+    return format.format(Date(epochDay * 86_400_000L))
+}
+
+@Composable
+private fun ResetDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.reset_title)) },
+        text = { Text(stringResource(R.string.reset_message)) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.reset)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }
 
 /** Takes the board's place while paused, so the puzzle can't be studied with the clock stopped. */
@@ -243,8 +328,11 @@ private fun describe(resources: Resources, board: Board, cell: Cell, showMistake
         board.isGiven(cell) -> resources.getString(R.string.cell_given, row, col, digit)
         else -> resources.getString(R.string.cell_entry, row, col, digit)
     }
-    return if (showMistakes && board.hasConflict(cell)) resources.getString(R.string.cell_conflict, description) else description
+    return if (board.showsMistake(cell, showMistakes)) resources.getString(R.string.cell_conflict, description) else description
 }
+
+// A given is never the wrong digit, so only the entries it clashes with are marked.
+private fun Board.showsMistake(cell: Cell, showMistakes: Boolean) = showMistakes && !isGiven(cell) && hasConflict(cell)
 
 private fun explain(resources: Resources, hint: Hint): String {
     val row = hint.cell.row + 1
@@ -373,7 +461,7 @@ private fun BoardCanvas(
                 }
                 continue
             }
-            val isMistake = showMistakes && board.hasConflict(cell)
+            val isMistake = board.showsMistake(cell, showMistakes)
             if (isMistake) {
                 val corner = cellSize * 0.28f
                 val right = (cell.col + 1) * cellSize
@@ -425,18 +513,10 @@ private fun Controls(
     onToggleNotes: () -> Unit,
     onCheck: () -> Unit,
     onHint: () -> Unit,
-    onPause: () -> Unit,
-    onUnpause: () -> Unit,
     modifier: Modifier,
 ) {
     val playing = !state.paused
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(formatElapsed(state.elapsedSeconds), style = MaterialTheme.typography.titleLarge)
-            TextButton(onClick = if (playing) onPause else onUnpause) {
-                Text(stringResource(if (playing) R.string.pause else R.string.unpause))
-            }
-        }
         for (digits in listOf(1..5, 6..9)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (digit in digits) {
@@ -455,42 +535,50 @@ private fun Controls(
                     }
                 }
                 if (digits.last == 9) {
-                    OutlinedButton(onClick = onErase, Modifier.weight(1f), enabled = playing, contentPadding = PadButtonPadding) {
-                        PadLabel(stringResource(R.string.erase))
-                    }
+                    PadAction(R.drawable.ic_backspace, stringResource(R.string.erase), onErase, Modifier.weight(1f), playing)
                 }
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             val weighted = Modifier.weight(1f)
-            OutlinedButton(onClick = onUndo, weighted, enabled = playing && state.canUndo, contentPadding = PadButtonPadding) {
-                PadLabel(stringResource(R.string.undo))
-            }
-            OutlinedButton(onClick = onRedo, weighted, enabled = playing && state.canRedo, contentPadding = PadButtonPadding) {
-                PadLabel(stringResource(R.string.redo))
-            }
-            val notesModifier = weighted.semantics { selected = state.notesMode }
-            if (state.notesMode) {
-                Button(onClick = onToggleNotes, notesModifier, enabled = playing, contentPadding = PadButtonPadding) {
-                    PadLabel(stringResource(R.string.notes))
-                }
-            } else {
-                OutlinedButton(onClick = onToggleNotes, notesModifier, enabled = playing, contentPadding = PadButtonPadding) {
-                    PadLabel(stringResource(R.string.notes))
-                }
-            }
+            PadAction(R.drawable.ic_undo, stringResource(R.string.undo), onUndo, weighted, playing && state.canUndo)
+            PadAction(R.drawable.ic_redo, stringResource(R.string.redo), onRedo, weighted, playing && state.canRedo)
+            PadAction(
+                R.drawable.ic_edit,
+                stringResource(R.string.notes),
+                onToggleNotes,
+                weighted.semantics { selected = state.notesMode },
+                playing,
+                highlighted = state.notesMode,
+            )
             if (state.mistakeMode == MistakeMode.ON_REQUEST) {
-                OutlinedButton(onClick = onCheck, weighted, enabled = playing, contentPadding = PadButtonPadding) {
-                    PadLabel(stringResource(R.string.check))
-                }
+                PadAction(R.drawable.ic_check, stringResource(R.string.check), onCheck, weighted, playing)
             }
-            OutlinedButton(onClick = onHint, weighted, enabled = playing, contentPadding = PadButtonPadding) {
-                PadLabel(stringResource(R.string.hint))
-            }
-            OutlinedButton(onClick = onReset, weighted, enabled = playing, contentPadding = PadButtonPadding) {
-                PadLabel(stringResource(R.string.reset))
-            }
+            PadAction(R.drawable.ic_lightbulb, stringResource(R.string.hint), onHint, weighted, playing)
+            PadAction(R.drawable.ic_restart, stringResource(R.string.reset), onReset, weighted, playing)
         }
+    }
+}
+
+@Composable
+private fun PadAction(
+    @DrawableRes icon: Int,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier,
+    enabled: Boolean,
+    highlighted: Boolean = false,
+) {
+    val content = @Composable {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(painterResource(icon), contentDescription = null, Modifier.size(20.dp))
+            PadLabel(label)
+        }
+    }
+    if (highlighted) {
+        Button(onClick, modifier, enabled, contentPadding = PadButtonPadding) { content() }
+    } else {
+        OutlinedButton(onClick, modifier, enabled, contentPadding = PadButtonPadding) { content() }
     }
 }
 
@@ -518,6 +606,9 @@ private fun GameContentPreview() {
         .toggleNote(Cell(0, 4), 7)
         .toggleNote(Cell(0, 8), 1)
     SudroidTheme {
-        GameContent(GameUiState(board, selected = Cell(1, 1), elapsedSeconds = 83, canUndo = true), {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+        GameContent(
+            GameUiState(board, Difficulty.MEDIUM, selected = Cell(1, 1), elapsedSeconds = 83, canUndo = true),
+            {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
+        )
     }
 }

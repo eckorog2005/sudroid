@@ -38,6 +38,9 @@ import com.rlamb.android.sudroid.game.GameViewModel
 import com.rlamb.android.sudroid.game.SettingsRepository
 import com.rlamb.android.sudroid.menu.MenuScreen
 import com.rlamb.android.sudroid.results.ResultsScreen
+import com.rlamb.android.sudroid.stats.Stats
+import com.rlamb.android.sudroid.stats.StatsRepository
+import com.rlamb.android.sudroid.stats.StatsScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.Serializable
 
@@ -50,8 +53,16 @@ data class Game(val request: GameRequest) : NavKey
 @Serializable
 data class Results(val elapsedSeconds: Int) : NavKey
 
+@Serializable
+data object Statistics : NavKey
+
 @Composable
-fun SudroidApp(repository: GameRepository, settings: SettingsRepository, saveScope: CoroutineScope) {
+fun SudroidApp(
+    repository: GameRepository,
+    statsRepository: StatsRepository,
+    settings: SettingsRepository,
+    saveScope: CoroutineScope,
+) {
     val backStack = rememberNavBackStack(Menu)
     NavDisplay(
         backStack = backStack,
@@ -64,7 +75,13 @@ fun SudroidApp(repository: GameRepository, settings: SettingsRepository, saveSco
             entry<Menu> {
                 val hasSavedGame by remember { repository.hasSavedGame() }.collectAsStateWithLifecycle(false)
                 val mistakeMode by settings.mistakeMode.collectAsStateWithLifecycle()
-                MenuScreen(hasSavedGame, mistakeMode, settings::setMistakeMode, onStart = { request -> backStack.add(Game(request)) })
+                MenuScreen(
+                    hasSavedGame,
+                    mistakeMode,
+                    settings::setMistakeMode,
+                    onStart = { request -> backStack.add(Game(request)) },
+                    onStats = { backStack.add(Statistics) },
+                )
             }
             entry<Game> { key ->
                 GameScreen(
@@ -79,6 +96,10 @@ fun SudroidApp(repository: GameRepository, settings: SettingsRepository, saveSco
             }
             entry<Results> { key ->
                 ResultsScreen(key.elapsedSeconds, onBackToMenu = { backStack.removeLastOrNull() })
+            }
+            entry<Statistics> {
+                val stats by remember { statsRepository.stats() }.collectAsStateWithLifecycle(Stats())
+                StatsScreen(stats, onBackToMenu = { backStack.removeLastOrNull() })
             }
         },
     )

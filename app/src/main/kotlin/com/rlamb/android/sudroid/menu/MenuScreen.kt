@@ -36,6 +36,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -58,6 +59,7 @@ fun MenuScreen(
     mistakeMode: MistakeMode,
     onMistakeMode: (MistakeMode) -> Unit,
     onStart: (GameRequest) -> Unit,
+    onStats: () -> Unit,
 ) {
     Scaffold { insets ->
         Column(
@@ -75,6 +77,7 @@ fun MenuScreen(
                     Text(stringResource(label))
                 }
             }
+            OutlinedButton(onClick = onStats, ButtonModifier) { Text(stringResource(R.string.stats)) }
             Spacer(Modifier.height(8.dp))
             Text(stringResource(R.string.mistakes), style = MaterialTheme.typography.titleMedium)
             Column(Modifier.widthIn(min = 200.dp).selectableGroup()) {
@@ -111,5 +114,5 @@ private val MistakeLabels = listOf(
 @Preview(showBackground = true, widthDp = 360, heightDp = 720)
 @Composable
 private fun MenuScreenPreview() {
-    SudroidTheme { MenuScreen(hasSavedGame = true, mistakeMode = MistakeMode.ALWAYS, onMistakeMode = {}, onStart = {}) }
+    SudroidTheme { MenuScreen(hasSavedGame = true, mistakeMode = MistakeMode.ALWAYS, onMistakeMode = {}, onStart = {}, onStats = {}) }
 }

@@ -26,12 +26,14 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.rlamb.android.sudroid.game.Difficulty
 import com.rlamb.android.sudroid.game.Puzzle
 import com.rlamb.android.sudroid.game.SavedGame
+import com.rlamb.android.sudroid.stats.DifficultyStats
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.TimeZone
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
@@ -82,7 +84,7 @@ class SudroidDatabaseTest {
 
         assertNull(repository.savedGame())
         assertEquals(PUZZLE_COUNTS, puzzleCounts())
-        assertEquals(listOf("puzzles", "saved_game"), userTables())
+        assertEquals(listOf("completed_games", "puzzles", "saved_game"), userTables())
     }
 
     @Test
@@ -91,7 +93,7 @@ class SudroidDatabaseTest {
 
         assertNull(repository.savedGame())
         assertEquals(PUZZLE_COUNTS, puzzleCounts())
-        assertEquals(listOf("puzzles", "saved_game"), userTables())
+        assertEquals(listOf("completed_games", "puzzles", "saved_game"), userTables())
         assertEquals(Difficulty.HARD, repository.randomPuzzle(Difficulty.HARD).difficulty)
     }
 
@@ -110,6 +112,25 @@ class SudroidDatabaseTest {
         repository.deleteSavedGame()
         assertNull(repository.savedGame())
         assertFalse(dao.hasSavedGame().first())
+    }
+
+    @Test
+    fun completingAGameRecordsItAndDeletesTheSave() = runBlocking {
+        var now = OCT_23_UTC + 23 * HOUR
+        val repository = repository(now = { now }, timeZone = TimeZone.getTimeZone("GMT-05:00"))
+        val hard = repository.randomPuzzle(Difficulty.HARD)
+        repository.save(SavedGame(hard, ENTRIES, elapsedSeconds = 1))
+
+        repository.completeGame(hard, elapsedSeconds = 600)
+        now += 2 * HOUR
+        repository.completeGame(hard, elapsedSeconds = 500)
+
+        assertNull(repository.savedGame())
+        val stats = repository.stats().first()
+        assertEquals(DifficultyStats(2, bestSeconds = 500, averageSeconds = 550), stats.byDifficulty[Difficulty.HARD])
+        // Both games fall on October 23 in GMT-5, though they straddle midnight UTC.
+        assertEquals(1, stats.longestStreak)
+        assertEquals(1, stats.currentStreak)
     }
 
     @Test
@@ -142,9 +163,12 @@ class SudroidDatabaseTest {
         }
     }
 
-    private fun repository(): RoomGameRepository {
+    private fun repository(
+        now: () -> Long = System::currentTimeMillis,
+        timeZone: TimeZone = TimeZone.getDefault(),
+    ): RoomGameRepository {
         val db = SudroidDatabase.build(context, NAME).also { database = it }
-        return RoomGameRepository(db.gameDao())
+        return RoomGameRepository(db.gameDao(), now) { timeZone }
     }
 
     private fun puzzleCounts(): Map<String, Int> =
@@ -164,5 +188,7 @@ class SudroidDatabaseTest {
         val ENTRIES = "4" + "0".repeat(80)
         val NOTES = "," + "13," + ",".repeat(78) + "9"
         val PUZZLE_COUNTS = mapOf("EASY" to 150, "MEDIUM" to 150, "HARD" to 150)
+        const val HOUR = 60 * 60 * 1000L
+        const val OCT_23_UTC = 20_749 * 24 * HOUR
     }
 }

@@ -39,7 +39,7 @@ class SudroidActivity : ComponentActivity() {
         val settings = PreferencesSettingsRepository(this)
         setContent {
             SudroidTheme {
-                SudroidApp(repository, settings, saveScope)
+                SudroidApp(repository, repository, settings, saveScope)
             }
         }
     }

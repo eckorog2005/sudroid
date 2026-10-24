@@ -67,9 +67,8 @@ class GameViewModel(
     private val undoStack = ArrayDeque<Board>()
     private val redoStack = ArrayDeque<Board>()
 
-    // A conflated channel drained by one coroutine keeps writes in order and skips stale ones;
-    // null means the game is over and the save should be deleted.
-    private val pendingSaves = Channel<SavedGame?>(Channel.CONFLATED)
+    // A conflated channel drained by one coroutine keeps writes in order and skips stale ones.
+    private val pendingWrites = Channel<PendingWrite>(Channel.CONFLATED)
 
     init {
         // After process death the screen comes back with its original request; a game that had
@@ -85,14 +84,17 @@ class GameViewModel(
             savedState[STARTED] = true
         }
         saveScope.launch {
-            for (game in pendingSaves) {
-                if (game == null) repository.deleteSavedGame() else repository.save(game)
+            for (write in pendingWrites) {
+                when (write) {
+                    is PendingWrite.Save -> repository.save(write.game)
+                    is PendingWrite.Complete -> repository.completeGame(write.puzzle, write.elapsedSeconds)
+                }
             }
         }
     }
 
     override fun onCleared() {
-        pendingSaves.close()
+        pendingWrites.close()
     }
 
     fun select(cell: Cell) {
@@ -159,14 +161,20 @@ class GameViewModel(
         _state.update {
             it.copy(board = board, canUndo = undoStack.isNotEmpty(), canRedo = redoStack.isNotEmpty(), checking = false)
         }
-        if (_state.value.isSolved) pendingSaves.trySend(null) else save()
+        val current = _state.value
+        if (current.isSolved) pendingWrites.trySend(PendingWrite.Complete(puzzle, current.elapsedSeconds)) else save()
     }
 
     private fun save() {
         val current = state.value
         val board = current.board ?: return
         if (current.isSolved) return
-        pendingSaves.trySend(SavedGame(puzzle, board.entriesString(), current.elapsedSeconds, board.notesString()))
+        pendingWrites.trySend(PendingWrite.Save(SavedGame(puzzle, board.entriesString(), current.elapsedSeconds, board.notesString())))
+    }
+
+    private sealed interface PendingWrite {
+        data class Save(val game: SavedGame) : PendingWrite
+        data class Complete(val puzzle: Puzzle, val elapsedSeconds: Int) : PendingWrite
     }
 
     private companion object {

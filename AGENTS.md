@@ -21,15 +21,16 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
   - `Cell` uses 0-based rows and columns.
   - `Solver` does bitmask backtracking: `solve`, `countSolutions` and `hasUniqueSolution`.
 - `:app` is Kotlin and Jetpack Compose, in `src/main/kotlin`.
-  - `SudroidActivity` is the only Activity; it keeps its original name so existing launcher shortcuts still work. `SudroidApp` runs Navigation 3 over the `Menu`, `Game(request)` and `Results(elapsedSeconds)` keys. Finishing a game replaces `Game` with `Results`, so Back never returns to a solved board.
+  - `SudroidActivity` is the only Activity; it keeps its original name so existing launcher shortcuts still work. `SudroidApp` runs Navigation 3 over the `Menu`, `Game(request)`, `Results(elapsedSeconds)` and `Statistics` keys. Finishing a game replaces `Game` with `Results`, so Back never returns to a solved board.
   - `GameViewModel` holds a `StateFlow<GameUiState>`, autosaves after every move, and counts time in `runClock()`, which the screen runs only while resumed.
-  - Storage goes through the `GameRepository` interface, implemented by `data.RoomGameRepository` on the Room `SudroidDatabase`. Saves run in a process-wide scope passed to `GameViewModel`, so the last save or delete lands after the screen closes.
+  - Solving a game calls `GameRepository.completeGame`, which records it in `completed_games` and deletes the save in one transaction. `stats.statsOf` turns those rows into per-difficulty counts, best and average times, and day streaks; days are local calendar days in the current time zone.
+  - Storage goes through the `GameRepository` and `StatsRepository` interfaces, implemented by `data.RoomGameRepository` on the Room `SudroidDatabase`. Saves run in a process-wide scope passed to `GameViewModel`, so the last save or delete lands after the screen closes.
   - The back stack survives process death, so a restored `Game(New(...))` key would start over. `GameViewModel` marks the game as started in its `SavedStateHandle` and resumes the autosave instead.
 
 ## Puzzle data and saves
 
 - Puzzles ship as SQL statements in `app/src/main/assets/data.txt`, 150 each for easy, medium and hard. They build the original version 1 schema (`Puzzle`, `Current`, ...).
-- Room keeps the old file name, `SudroidDB`, now at version 3. `MIGRATION_1_2` converts the version 1 tables into `puzzles` and `saved_game` and drops them; an auto-migration adds `saved_game.notes` in version 3. Fresh installs run `data.txt` and then the same conversion, so puzzle IDs match in both paths.
+- Room keeps the old file name, `SudroidDB`, now at version 4. `MIGRATION_1_2` converts the version 1 tables into `puzzles` and `saved_game` and drops them; auto-migrations add `saved_game.notes` in version 3 and the `completed_games` table in version 4. Fresh installs run `data.txt` and then the same conversion, so puzzle IDs match in both paths.
 - Edits to `data.txt` only reach fresh installs. To reach existing installs, bump the database version and add a migration. Room exports each schema to `app/schemas`; commit it.
 - Puzzle strings are 81 digits in row-major order, with `0` for an empty cell. The saved game (`saved_game.entries`, formerly `Current.userEntered`) uses the same format with givens written as `0`; see `Board.entriesString()` and `Board.withEntries()`. Pencil marks go in `saved_game.notes` as 81 comma-separated digit groups (`Board.notesString()`), empty for saves from before version 3. Keep this format compatible so existing saved games still resume.
 - `SolverTest` reads `data.txt`, whose path comes in through the `sudroid.puzzleData` system property, and requires every bundled puzzle to have exactly one solution.

@@ -45,4 +45,7 @@ interface GameRepository {
     fun hasSavedGame(): Flow<Boolean>
     suspend fun save(game: SavedGame)
     suspend fun deleteSavedGame()
+
+    /** Records a solved game for the stats and deletes the saved game, together. */
+    suspend fun completeGame(puzzle: Puzzle, elapsedSeconds: Int)
 }

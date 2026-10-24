@@ -62,6 +62,7 @@
     <string name="cell_entry">Row %1$d, column %2$d, %3$d</string>
     <string name="cell_conflict">%1$s, conflicts with another cell</string>
     <string name="digit_remaining">%1$d, %2$d left</string>
+    <string name="note_remaining">Note %1$d, %2$d left</string>
     <plurals name="results_hints">
         <item quantity="one">Solved with %d hint, so this time doesn\'t count toward your best.</item>
         <item quantity="other">Solved with %d hints, so this time doesn\'t count toward your best.</item>

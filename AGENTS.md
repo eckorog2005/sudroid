@@ -19,7 +19,7 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
 
 - `:engine` is pure Kotlin on the JVM, with no Android dependencies.
   - `Board` is immutable: every move returns a new board. Conflicts are worked out from the grid on each call, never stored.
-  - `Cell` uses 0-based rows and columns.
+  - `Cell` uses 0-based rows and columns. `Cell.HOUSES` lists the 27 rows, columns and boxes; `Board.isComplete(house)` is true when one is full with no repeat.
   - `Solver` does bitmask backtracking: `solve`, `countSolutions` and `hasUniqueSolution`.
   - `Grader` solves the way a person does (naked singles, hidden singles, locked candidates) and returns the hardest `Technique` needed, or null. `Generator` digs clues out of a random full grid while the puzzle stays unique and no harder than its target. `hint` solves from the givens alone, so it can correct wrong entries, and returns a `Hint` whose `Reason` names the technique (`Hint.kt`).
 - `:app` is Kotlin and Jetpack Compose, in `src/main/kotlin`.

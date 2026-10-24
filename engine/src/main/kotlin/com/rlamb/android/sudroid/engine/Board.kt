@@ -48,6 +48,12 @@ class Board private constructor(
         return digit != BLANK && cell.peers.any { digitAt(it) == digit }
     }
 
+    /** True when every cell of [house], one of [Cell.HOUSES], holds a digit and none repeats. */
+    fun isComplete(house: List<Cell>): Boolean {
+        val digits = house.map(::digitAt)
+        return BLANK !in digits && digits.toSet().size == digits.size
+    }
+
     val isSolved: Boolean
         get() = Cell.ALL.all { digitAt(it) != BLANK && !hasConflict(it) }
 

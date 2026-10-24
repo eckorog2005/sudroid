@@ -20,6 +20,8 @@
 package com.rlamb.android.sudroid.game
 
 import android.content.res.Resources
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -56,6 +58,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -90,11 +94,21 @@ fun GameScreen(viewModel: GameViewModel, onSolved: (elapsedSeconds: Int) -> Unit
     if (state.isSolved) {
         LaunchedEffect(Unit) { onSolved(state.elapsedSeconds) }
     }
+    val haptics = LocalHapticFeedback.current
+    LaunchedEffect(state.completed) {
+        if (state.completed.isNotEmpty()) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+    }
     GameContent(
         state = state,
         onSelect = viewModel::select,
-        onDigit = viewModel::enter,
-        onErase = viewModel::erase,
+        onDigit = {
+            haptics.performHapticFeedback(HapticFeedbackType.KeyboardTap)
+            viewModel.enter(it)
+        },
+        onErase = {
+            haptics.performHapticFeedback(HapticFeedbackType.KeyboardTap)
+            viewModel.erase()
+        },
         onReset = viewModel::reset,
         onUndo = viewModel::undo,
         onRedo = viewModel::redo,
@@ -141,7 +155,7 @@ private fun GameContent(
                 if (state.paused) {
                     PausedPanel(onUnpause, modifier)
                 } else {
-                    SudokuBoard(board, state.selected, state.showMistakes, onSelect, modifier)
+                    SudokuBoard(board, state.selected, state.showMistakes, state.completed, onSelect, modifier)
                 }
             }
             val controls = @Composable { modifier: Modifier ->
@@ -180,15 +194,32 @@ private fun PausedPanel(onUnpause: () -> Unit, modifier: Modifier) {
 }
 
 @Composable
-private fun SudokuBoard(board: Board, selected: Cell?, showMistakes: Boolean, onSelect: (Cell) -> Unit, modifier: Modifier) {
+private fun SudokuBoard(
+    board: Board,
+    selected: Cell?,
+    showMistakes: Boolean,
+    completed: Set<Cell>,
+    onSelect: (Cell) -> Unit,
+    modifier: Modifier,
+) {
     val textMeasurer = rememberTextMeasurer()
     val resources = LocalResources.current
     val descriptions = remember(board, showMistakes, resources) {
         Cell.ALL.map { describe(resources, board, it, showMistakes) }
     }
 
+    val flash = remember { Animatable(0f) }
+    LaunchedEffect(completed) {
+        if (completed.isEmpty()) {
+            flash.snapTo(0f)
+        } else {
+            flash.snapTo(1f)
+            flash.animateTo(0f, tween(durationMillis = 800))
+        }
+    }
+
     Box(modifier) {
-        BoardCanvas(board, selected, showMistakes, textMeasurer, Modifier.matchParentSize())
+        BoardCanvas(board, selected, showMistakes, completed, { flash.value }, textMeasurer, Modifier.matchParentSize())
         CellTargets(descriptions, selected, onSelect, Modifier.matchParentSize())
     }
 }
@@ -258,6 +289,8 @@ private fun BoardCanvas(
     board: Board,
     selected: Cell?,
     showMistakes: Boolean,
+    completed: Set<Cell>,
+    flash: () -> Float,
     textMeasurer: TextMeasurer,
     modifier: Modifier,
 ) {
@@ -280,6 +313,8 @@ private fun BoardCanvas(
             }
             highlight(selected, colors.primaryContainer)
         }
+        val flashAlpha = flash()
+        if (flashAlpha > 0f) completed.forEach { highlight(it, colors.primary.copy(alpha = 0.45f * flashAlpha)) }
 
         val fontSize = (cellSize * 0.6f).toSp()
         val noteStyle = digitStyle.copy(color = colors.onSurfaceVariant, fontSize = (cellSize * 0.22f).toSp())

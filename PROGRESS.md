@@ -75,5 +75,5 @@ Existing bugs this step fixes:
 ## Unscheduled
 
 - [x] Pause screen that hides the board: a Pause button by the timer swaps the board for a Paused panel, stops the clock and disables the controls, and the pause survives process death
-- [ ] Haptics on input, an animation when a row, column or box is completed, and a celebration on finishing
+- [x] Haptics on input, an animation when a row, column or box is completed, and a celebration on finishing: a tap on each pad press, a confirm and a fading flash over each house a move completes (`Board.isComplete`, `Cell.HOUSES`), and confetti on the results screen
 - [x] `.gitattributes` to keep the CRLF line endings in `data.txt` (and `gradlew.bat`), marked `-text` so no checkout converts them

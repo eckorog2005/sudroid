@@ -114,8 +114,6 @@ private class Grading(private val digits: IntArray) {
     private companion object {
         const val ALL_DIGITS = 0b11_1111_1110
         val PEERS: List<List<Int>> = Cell.ALL.map { cell -> cell.peers.map(Cell::index) }
-        val HOUSES: List<Set<Int>> = listOf<(Cell) -> Int>(Cell::row, Cell::col, Cell::box).flatMap { houseOf ->
-            Cell.ALL.groupBy(houseOf).values.map { cells -> cells.mapTo(linkedSetOf(), Cell::index) }
-        }
+        val HOUSES: List<Set<Int>> = Cell.HOUSES.map { house -> house.mapTo(linkedSetOf(), Cell::index) }
     }
 }

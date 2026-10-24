@@ -53,6 +53,8 @@ data class GameUiState(
     val hint: Hint? = null,
     /** While paused the board is hidden, the clock stops and moves are ignored. */
     val paused: Boolean = false,
+    /** Cells of the rows, columns and boxes the last move completed, for the screen to celebrate. */
+    val completed: Set<Cell> = emptySet(),
 ) {
     val isSolved: Boolean = board?.isSolved == true
     val showMistakes: Boolean = mistakeMode == MistakeMode.ALWAYS || (mistakeMode == MistakeMode.ON_REQUEST && checking)
@@ -191,7 +193,7 @@ class GameViewModel(
         if (next === board) return
         undoStack.addLast(board)
         redoStack.clear()
-        show(next)
+        show(next, completed = Cell.HOUSES.filter { next.isComplete(it) && !board.isComplete(it) }.flatten().toSet())
     }
 
     private fun step(from: ArrayDeque<Board>, to: ArrayDeque<Board>) {
@@ -201,9 +203,16 @@ class GameViewModel(
         show(from.removeLast())
     }
 
-    private fun show(board: Board) {
+    private fun show(board: Board, completed: Set<Cell> = emptySet()) {
         _state.update {
-            it.copy(board = board, canUndo = undoStack.isNotEmpty(), canRedo = redoStack.isNotEmpty(), checking = false, hint = null)
+            it.copy(
+                board = board,
+                canUndo = undoStack.isNotEmpty(),
+                canRedo = redoStack.isNotEmpty(),
+                checking = false,
+                hint = null,
+                completed = completed,
+            )
         }
         val current = _state.value
         if (current.isSolved) pendingWrites.trySend(PendingWrite.Complete(puzzle, current.elapsedSeconds, dailyDay)) else save()

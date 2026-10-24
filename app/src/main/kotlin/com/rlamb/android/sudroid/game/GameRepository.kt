@@ -65,7 +65,8 @@ interface GameRepository {
     /** The regular game in progress. The daily challenge is saved separately, so neither overwrites the other. */
     suspend fun savedGame(): SavedGame?
     suspend fun savedDailyGame(epochDay: Long): SavedGame?
-    fun hasSavedGame(): Flow<Boolean>
+    /** [savedGame], updated as it's saved and deleted. */
+    fun observeSavedGame(): Flow<SavedGame?>
 
     /** Saves to the daily challenge's slot when [SavedGame.dailyDay] is set, and to the regular one otherwise. */
     suspend fun save(game: SavedGame)

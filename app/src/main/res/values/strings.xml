@@ -56,6 +56,11 @@
     <string name="mistakes_always">Always</string>
     <string name="mistakes_on_request">On request</string>
     <string name="mistakes_never">Never</string>
+    <string name="mistakes_always_summary">Mark a clashing digit as soon as you place it</string>
+    <string name="mistakes_on_request_summary">Mark clashing digits when you tap Check</string>
+    <string name="mistakes_never_summary">Never mark clashing digits</string>
+    <string name="settings">Settings</string>
+    <string name="resume_details">%1$s · %2$s</string>
     <string name="cell_empty">Row %1$d, column %2$d, empty</string>
     <string name="cell_notes">Row %1$d, column %2$d, empty, notes %3$s</string>
     <string name="cell_given">Row %1$d, column %2$d, %3$d, given</string>

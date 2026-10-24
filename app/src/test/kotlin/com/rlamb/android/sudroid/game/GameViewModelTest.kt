@@ -648,7 +648,7 @@ private class FakeGameRepository(private val puzzle: Puzzle, private val dailyPu
 
     override suspend fun savedDailyGame(epochDay: Long): SavedGame? = savedDaily?.takeIf { it.dailyDay == epochDay }
 
-    override fun hasSavedGame(): Flow<Boolean> = flowOf(saved != null)
+    override fun observeSavedGame(): Flow<SavedGame?> = flowOf(saved)
 
     override suspend fun save(game: SavedGame) {
         if (game.dailyDay == null) saved = game else savedDaily = game

@@ -38,6 +38,7 @@ import com.rlamb.android.sudroid.game.GameViewModel
 import com.rlamb.android.sudroid.game.SettingsRepository
 import com.rlamb.android.sudroid.menu.MenuScreen
 import com.rlamb.android.sudroid.results.ResultsScreen
+import com.rlamb.android.sudroid.settings.SettingsScreen
 import com.rlamb.android.sudroid.stats.Stats
 import com.rlamb.android.sudroid.stats.StatsRepository
 import com.rlamb.android.sudroid.stats.StatsScreen
@@ -56,6 +57,9 @@ data class Results(val elapsedSeconds: Int, val hints: Int = 0) : NavKey
 @Serializable
 data object Statistics : NavKey
 
+@Serializable
+data object Settings : NavKey
+
 @Composable
 fun SudroidApp(
     repository: GameRepository,
@@ -73,17 +77,15 @@ fun SudroidApp(
         ),
         entryProvider = entryProvider {
             entry<Menu> {
-                val hasSavedGame by remember { repository.hasSavedGame() }.collectAsStateWithLifecycle(false)
+                val savedGame by remember { repository.observeSavedGame() }.collectAsStateWithLifecycle(null)
                 val stats by remember { statsRepository.stats() }.collectAsStateWithLifecycle(Stats())
-                val mistakeMode by settings.mistakeMode.collectAsStateWithLifecycle()
                 MenuScreen(
-                    hasSavedGame,
+                    savedGame,
                     stats.dailySolvedToday,
                     stats.dailyCurrentStreak,
-                    mistakeMode,
-                    settings::setMistakeMode,
                     onStart = { request -> backStack.add(Game(request)) },
                     onStats = { backStack.add(Statistics) },
+                    onSettings = { backStack.add(Settings) },
                 )
             }
             entry<Game> { key ->
@@ -104,6 +106,10 @@ fun SudroidApp(
             entry<Statistics> {
                 val stats by remember { statsRepository.stats() }.collectAsStateWithLifecycle(Stats())
                 StatsScreen(stats, onBackToMenu = { backStack.removeLastOrNull() })
+            }
+            entry<Settings> {
+                val mistakeMode by settings.mistakeMode.collectAsStateWithLifecycle()
+                SettingsScreen(mistakeMode, settings::setMistakeMode, onBack = { backStack.removeLastOrNull() })
             }
         },
     )

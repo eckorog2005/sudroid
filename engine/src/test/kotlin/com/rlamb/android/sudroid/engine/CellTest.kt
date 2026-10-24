@@ -22,4 +22,11 @@ class CellTest {
         assertTrue(Cell(3, 3) in peers)
         assertFalse(Cell(0, 0) in peers)
     }
+
+    @Test
+    fun `there are 27 houses of 9 cells and every cell is in one row, one column and one box`() {
+        assertEquals(27, Cell.HOUSES.size)
+        assertTrue(Cell.HOUSES.all { it.size == Board.SIZE })
+        assertTrue(Cell.ALL.all { cell -> Cell.HOUSES.count { cell in it } == 3 })
+    }
 }

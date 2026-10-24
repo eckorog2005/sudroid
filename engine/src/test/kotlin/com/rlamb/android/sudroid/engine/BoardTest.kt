@@ -226,6 +226,16 @@ class BoardTest {
         assertFailsWith<IllegalArgumentException> { board.withNotes(notes.replaceFirst("4", "0")) }
     }
 
+    @Test
+    fun `a house is complete once it is full with no repeated digit`() {
+        val firstRow = Cell.HOUSES.first()
+        val nearly = Board.fromPuzzle(PUZZLE).withEntries(SOLUTION.take(8) + "0".repeat(73))
+
+        assertFalse(nearly.isComplete(firstRow))
+        assertTrue(nearly.place(Cell(0, 8), 2).isComplete(firstRow))
+        assertFalse(nearly.place(Cell(0, 8), 1).isComplete(firstRow))
+    }
+
     companion object {
         const val PUZZLE = "530070000600195000098000060800060003400803001700020006060000280000419005000080079"
         const val SOLUTION = "534678912672195348198342567859761423426853791713924856961537284287419635345286179"

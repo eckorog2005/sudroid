@@ -326,6 +326,27 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `a move that fills a house correctly reports its cells until the next move`() = runTest {
+        val firstRow = Cell.HOUSES.first()
+        val lastCell = firstRow.last { !SOLUTION.isGiven(it) }
+        val viewModel = newGame()
+        for (cell in firstRow.filter { !SOLUTION.isGiven(it) && it != lastCell }) {
+            viewModel.select(cell)
+            viewModel.enter(SOLUTION.digitAt(cell))
+        }
+        assertEquals(emptySet(), viewModel.state.value.completed)
+
+        viewModel.select(lastCell)
+        viewModel.enter(SOLUTION.digitAt(lastCell))
+        assertTrue(viewModel.state.value.completed.containsAll(firstRow))
+
+        viewModel.undo()
+        assertEquals(emptySet(), viewModel.state.value.completed)
+        viewModel.redo()
+        assertEquals(emptySet(), viewModel.state.value.completed)
+    }
+
+    @Test
     fun `the clock counts seconds while it runs and saves the time when it stops`() = runTest {
         val viewModel = newGame()
 

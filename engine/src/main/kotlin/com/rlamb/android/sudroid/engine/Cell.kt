@@ -38,6 +38,12 @@ data class Cell(val row: Int, val col: Int) {
         @JvmField
         val ALL: List<Cell> = List(Board.CELL_COUNT) { Cell(it / Board.SIZE, it % Board.SIZE) }
 
+        /** The 27 rows, columns and boxes, in that order. */
+        @JvmField
+        val HOUSES: List<List<Cell>> = listOf<(Cell) -> Int>(Cell::row, Cell::col, Cell::box).flatMap { houseOf ->
+            ALL.groupBy(houseOf).values.toList()
+        }
+
         private val PEERS: List<List<Cell>> = ALL.map { cell ->
             ALL.filter { it != cell && (it.row == cell.row || it.col == cell.col || it.box == cell.box) }
         }

@@ -47,6 +47,7 @@ data class SavedGameEntity(
     @ColumnInfo(name = "elapsed_seconds") val elapsedSeconds: Int,
     @ColumnInfo(defaultValue = "") val notes: String,
     @ColumnInfo(name = "daily_day") val dailyDay: Long? = null,
+    @ColumnInfo(defaultValue = "0") val hints: Int = 0,
 )
 
 @Entity(tableName = "completed_games")
@@ -58,6 +59,7 @@ data class CompletedGameEntity(
     /** Epoch milliseconds. */
     @ColumnInfo(name = "completed_at") val completedAt: Long,
     @ColumnInfo(name = "daily_day") val dailyDay: Long? = null,
+    @ColumnInfo(defaultValue = "0") val hints: Int = 0,
 )
 
 data class SavedGameWithPuzzle(
@@ -66,6 +68,7 @@ data class SavedGameWithPuzzle(
     @ColumnInfo(name = "elapsed_seconds") val elapsedSeconds: Int,
     val notes: String,
     @ColumnInfo(name = "daily_day") val dailyDay: Long?,
+    val hints: Int,
 )
 
 @Dao
@@ -80,7 +83,7 @@ interface GameDao {
     suspend fun puzzleAt(index: Int): PuzzleEntity?
 
     @Query(
-        "SELECT p.*, s.entries, s.elapsed_seconds, s.notes, s.daily_day FROM saved_game s " +
+        "SELECT p.*, s.entries, s.elapsed_seconds, s.notes, s.daily_day, s.hints FROM saved_game s " +
             "JOIN puzzles p ON p.id = s.puzzle_id WHERE s.slot = :slot",
     )
     suspend fun savedGame(slot: Int): SavedGameWithPuzzle?

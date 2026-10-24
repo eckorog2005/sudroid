@@ -73,6 +73,7 @@ fun StatsScreen(stats: Stats, onBackToMenu: () -> Unit) {
                 val entry = stats.byDifficulty.getValue(difficulty)
                 StatsCard(stringResource(label)) {
                     StatRow(stringResource(R.string.stats_completed), entry.completed.toString())
+                    StatRow(stringResource(R.string.stats_without_hints), entry.withoutHints.toString())
                     StatRow(stringResource(R.string.stats_best_time), time(entry.bestSeconds))
                     StatRow(stringResource(R.string.stats_average_time), time(entry.averageSeconds))
                 }
@@ -123,7 +124,7 @@ private val DifficultyLabels = listOf(
 private fun StatsScreenPreview() {
     val stats = Stats(
         byDifficulty = mapOf(
-            Difficulty.EASY to DifficultyStats(12, bestSeconds = 241, averageSeconds = 388),
+            Difficulty.EASY to DifficultyStats(12, bestSeconds = 241, averageSeconds = 388, withoutHints = 9),
             Difficulty.MEDIUM to DifficultyStats(3, bestSeconds = 610, averageSeconds = 745),
             Difficulty.HARD to DifficultyStats(),
         ),

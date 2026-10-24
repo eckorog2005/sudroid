@@ -51,7 +51,7 @@ data object Menu : NavKey
 data class Game(val request: GameRequest) : NavKey
 
 @Serializable
-data class Results(val elapsedSeconds: Int) : NavKey
+data class Results(val elapsedSeconds: Int, val hints: Int = 0) : NavKey
 
 @Serializable
 data object Statistics : NavKey
@@ -91,14 +91,14 @@ fun SudroidApp(
                     viewModel = viewModel {
                         GameViewModel(repository, key.request, saveScope, createSavedStateHandle(), settings.mistakeMode.value)
                     },
-                    onSolved = { elapsedSeconds ->
+                    onSolved = { elapsedSeconds, hints ->
                         // Replacing the game keeps Back from returning to a finished board.
-                        if (backStack.lastOrNull() == key) backStack[backStack.lastIndex] = Results(elapsedSeconds)
+                        if (backStack.lastOrNull() == key) backStack[backStack.lastIndex] = Results(elapsedSeconds, hints)
                     },
                 )
             }
             entry<Results> { key ->
-                ResultsScreen(key.elapsedSeconds, onBackToMenu = { backStack.removeLastOrNull() })
+                ResultsScreen(key.elapsedSeconds, key.hints, onBackToMenu = { backStack.removeLastOrNull() })
             }
             entry<Statistics> {
                 val stats by remember { statsRepository.stats() }.collectAsStateWithLifecycle(Stats())

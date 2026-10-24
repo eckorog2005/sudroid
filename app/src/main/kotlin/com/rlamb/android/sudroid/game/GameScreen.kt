@@ -86,14 +86,14 @@ import com.rlamb.android.sudroid.engine.Hint
 import com.rlamb.android.sudroid.ui.SudroidTheme
 
 @Composable
-fun GameScreen(viewModel: GameViewModel, onSolved: (elapsedSeconds: Int) -> Unit) {
+fun GameScreen(viewModel: GameViewModel, onSolved: (elapsedSeconds: Int, hints: Int) -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(viewModel, lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) { viewModel.runClock() }
     }
     if (state.isSolved) {
-        LaunchedEffect(Unit) { onSolved(state.elapsedSeconds) }
+        LaunchedEffect(Unit) { onSolved(state.elapsedSeconds, state.hints) }
     }
     val haptics = LocalHapticFeedback.current
     LaunchedEffect(state.completed) {

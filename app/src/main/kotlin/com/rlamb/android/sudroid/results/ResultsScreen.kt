@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
@@ -61,7 +62,7 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 @Composable
-fun ResultsScreen(elapsedSeconds: Int, onBackToMenu: () -> Unit) {
+fun ResultsScreen(elapsedSeconds: Int, hints: Int, onBackToMenu: () -> Unit) {
     Scaffold { insets ->
         Box(Modifier.fillMaxSize().padding(insets)) {
             Column(
@@ -75,6 +76,13 @@ fun ResultsScreen(elapsedSeconds: Int, onBackToMenu: () -> Unit) {
                     textAlign = TextAlign.Center,
                 )
                 Text(formatElapsed(elapsedSeconds), style = MaterialTheme.typography.displayLarge)
+                if (hints > 0) {
+                    Text(
+                        pluralStringResource(R.plurals.results_hints, hints, hints),
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                    )
+                }
                 Spacer(Modifier.height(24.dp))
                 Button(onClick = onBackToMenu) { Text(stringResource(R.string.backMenu)) }
             }
@@ -136,5 +144,5 @@ private const val CONFETTI_SEED = 2010
 @Preview(showBackground = true, widthDp = 360, heightDp = 720)
 @Composable
 private fun ResultsScreenPreview() {
-    SudroidTheme { ResultsScreen(elapsedSeconds = 754, onBackToMenu = {}) }
+    SudroidTheme { ResultsScreen(elapsedSeconds = 754, hints = 2, onBackToMenu = {}) }
 }

@@ -301,6 +301,21 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `hints are counted, saved and kept when undone or resumed`() = runTest {
+        val viewModel = newGame()
+        viewModel.select(Cell(0, 0))
+        viewModel.hint()
+        viewModel.select(Cell(1, 1))
+        viewModel.hint()
+        viewModel.undo()
+
+        assertEquals(2, viewModel.state.value.hints)
+        assertEquals(2, repository.saved?.hints)
+        val resumed = GameViewModel(repository, GameRequest.Resume, saveScope, SavedStateHandle())
+        assertEquals(2, resumed.state.value.hints)
+    }
+
+    @Test
     fun `the hint stays for the screen to explain until the next move`() = runTest {
         val viewModel = newGame()
         viewModel.select(Cell(0, 0))
@@ -322,7 +337,7 @@ class GameViewModelTest {
 
         assertTrue(viewModel.state.value.isSolved)
         assertEquals(lastCell, viewModel.state.value.selected)
-        assertEquals(listOf(Completed(PUZZLE, 10)), repository.completed)
+        assertEquals(listOf(Completed(PUZZLE, 10, hints = 1)), repository.completed)
     }
 
     @Test
@@ -596,7 +611,7 @@ class GameViewModelTest {
     }
 }
 
-private data class Completed(val puzzle: Puzzle, val elapsedSeconds: Int, val dailyDay: Long? = null)
+private data class Completed(val puzzle: Puzzle, val elapsedSeconds: Int, val dailyDay: Long? = null, val hints: Int = 0)
 
 private class FakeGameRepository(private val puzzle: Puzzle, private val dailyPuzzle: Puzzle) : GameRepository {
     var saved: SavedGame? = null
@@ -632,8 +647,8 @@ private class FakeGameRepository(private val puzzle: Puzzle, private val dailyPu
         saved = null
     }
 
-    override suspend fun completeGame(puzzle: Puzzle, elapsedSeconds: Int, dailyDay: Long?) {
-        completed += Completed(puzzle, elapsedSeconds, dailyDay)
+    override suspend fun completeGame(puzzle: Puzzle, elapsedSeconds: Int, dailyDay: Long?, hints: Int) {
+        completed += Completed(puzzle, elapsedSeconds, dailyDay, hints)
         if (dailyDay == null) saved = null else savedDaily = null
     }
 }

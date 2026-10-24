@@ -37,6 +37,7 @@ data class SavedGame(
     val elapsedSeconds: Int,
     val notes: String = "",
     val dailyDay: Long? = null,
+    val hints: Int = 0,
 )
 
 @Serializable
@@ -71,7 +72,7 @@ interface GameRepository {
     suspend fun deleteSavedGame()
 
     /** Records a solved game for the stats and deletes its save, together. */
-    suspend fun completeGame(puzzle: Puzzle, elapsedSeconds: Int, dailyDay: Long? = null)
+    suspend fun completeGame(puzzle: Puzzle, elapsedSeconds: Int, dailyDay: Long? = null, hints: Int = 0)
 }
 
 /**

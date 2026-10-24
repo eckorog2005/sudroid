@@ -53,6 +53,8 @@ data class GameUiState(
     val hint: Hint? = null,
     /** While paused the board is hidden, the clock stops and moves are ignored. */
     val paused: Boolean = false,
+    /** Hints used on this puzzle so far; undo doesn't take one back. */
+    val hints: Int = 0,
     /** Cells of the rows, columns and boxes the last move completed, for the screen to celebrate. */
     val completed: Set<Cell> = emptySet(),
 ) {
@@ -102,14 +104,14 @@ class GameViewModel(
             val board = Board.fromPuzzle(puzzle.digits).let {
                 if (saved != null) it.withEntries(saved.entries).withNotes(saved.notes) else it
             }
-            _state.update { it.copy(board = board, elapsedSeconds = saved?.elapsedSeconds ?: 0) }
+            _state.update { it.copy(board = board, elapsedSeconds = saved?.elapsedSeconds ?: 0, hints = saved?.hints ?: 0) }
             savedState[STARTED] = true
         }
         saveScope.launch {
             for (write in pendingWrites) {
                 when (write) {
                     is PendingWrite.Save -> repository.save(write.game)
-                    is PendingWrite.Complete -> repository.completeGame(write.puzzle, write.elapsedSeconds, write.dailyDay)
+                    is PendingWrite.Complete -> repository.completeGame(write.puzzle, write.elapsedSeconds, write.dailyDay, write.hints)
                 }
             }
         }
@@ -145,6 +147,7 @@ class GameViewModel(
         if (current.isSolved || current.paused) return
         val hint = Solver.hint(board, current.selected) ?: return
         select(hint.cell)
+        _state.update { it.copy(hints = it.hints + 1) }
         move { it.place(hint.cell, hint.digit) }
         _state.update { it.copy(hint = hint) }
     }
@@ -215,20 +218,20 @@ class GameViewModel(
             )
         }
         val current = _state.value
-        if (current.isSolved) pendingWrites.trySend(PendingWrite.Complete(puzzle, current.elapsedSeconds, dailyDay)) else save()
+        if (current.isSolved) pendingWrites.trySend(PendingWrite.Complete(puzzle, current.elapsedSeconds, dailyDay, current.hints)) else save()
     }
 
     private fun save() {
         val current = state.value
         val board = current.board ?: return
         if (current.isSolved) return
-        val game = SavedGame(puzzle, board.entriesString(), current.elapsedSeconds, board.notesString(), dailyDay)
+        val game = SavedGame(puzzle, board.entriesString(), current.elapsedSeconds, board.notesString(), dailyDay, current.hints)
         pendingWrites.trySend(PendingWrite.Save(game))
     }
 
     private sealed interface PendingWrite {
         data class Save(val game: SavedGame) : PendingWrite
-        data class Complete(val puzzle: Puzzle, val elapsedSeconds: Int, val dailyDay: Long?) : PendingWrite
+        data class Complete(val puzzle: Puzzle, val elapsedSeconds: Int, val dailyDay: Long?, val hints: Int) : PendingWrite
     }
 
     private companion object {

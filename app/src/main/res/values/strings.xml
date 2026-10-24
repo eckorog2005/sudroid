@@ -18,6 +18,12 @@
     <string name="notes">Notes</string>
     <string name="check">Check</string>
     <string name="hint">Hint</string>
+    <string name="hint_mistake">Mistake at row %2$d, column %3$d: the answer is %4$d, not %1$d.</string>
+    <string name="hint_naked_single">%1$d at row %2$d, column %3$d: its row, column and box already hold every other digit.</string>
+    <string name="hint_hidden_single_row">%1$d at row %2$d, column %3$d: no other cell in its row can take %1$d.</string>
+    <string name="hint_hidden_single_column">%1$d at row %2$d, column %3$d: no other cell in its column can take %1$d.</string>
+    <string name="hint_hidden_single_box">%1$d at row %2$d, column %3$d: no other cell in its box can take %1$d.</string>
+    <string name="hint_from_solution">%1$d at row %2$d, column %3$d, from the solution. No single step finds it yet.</string>
     <string name="mistakes">Show mistakes</string>
     <string name="mistakes_always">Always</string>
     <string name="mistakes_on_request">On request</string>

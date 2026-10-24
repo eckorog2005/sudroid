@@ -154,10 +154,10 @@ class SudroidDatabaseTest {
     fun dailyPuzzlesRepeatOnlyAfterEveryPuzzleHasComeUp() = runBlocking {
         val repository = repository()
 
-        val ids = (DAY until DAY + 450).map { repository.dailyPuzzle(it).id }
+        val ids = (DAY until DAY + PUZZLE_TOTAL).map { repository.dailyPuzzle(it).id }
 
-        assertEquals(450, ids.toSet().size)
-        assertEquals(ids.first(), repository.dailyPuzzle(DAY + 450).id)
+        assertEquals(PUZZLE_TOTAL, ids.toSet().size)
+        assertEquals(ids.first(), repository.dailyPuzzle(DAY + PUZZLE_TOTAL).id)
     }
 
     @Test
@@ -225,6 +225,25 @@ class SudroidDatabaseTest {
         assertEquals(0, stats.dailyLongestStreak)
     }
 
+    @Test
+    fun upgradeFromVersion5AddsTheGeneratedPuzzlesAndKeepsTheGame() = runBlocking {
+        SudroidDatabase.build(context, NAME).apply { openHelper.writableDatabase }.close()
+        SQLiteDatabase.openDatabase(context.getDatabasePath(NAME).path, null, 0).use { db ->
+            db.execSQL("DELETE FROM puzzles WHERE id > 450")
+            db.execSQL("INSERT INTO saved_game VALUES (0, 12, '$ENTRIES', 30, '$NOTES', NULL)")
+            db.version = 5
+        }
+        val repository = repository()
+
+        assertEquals(PUZZLE_COUNTS, puzzleCounts())
+        assertEquals(12, repository.savedGame()?.puzzle?.id)
+        val (id, difficulty, digits) = context.assets.open("puzzles.txt").bufferedReader().readLine().split(',')
+        val first = checkNotNull(database).openHelper.readableDatabase
+            .query("SELECT difficulty, digits FROM puzzles WHERE id = ?", arrayOf(id.toInt()))
+            .use { it.moveToFirst(); it.getString(0) to it.getString(1) }
+        assertEquals(difficulty to digits, first)
+    }
+
     /** Builds the database the way the original SQLiteOpenHelper did and returns puzzle 12's pattern. */
     private fun createVersion1(current: String?): String {
         val statements = context.assets.open("data.txt").bufferedReader().readText().split("\r\n")
@@ -260,7 +279,9 @@ class SudroidDatabaseTest {
         const val NAME = "sudroid-database-test"
         val ENTRIES = "4" + "0".repeat(80)
         val NOTES = "," + "13," + ",".repeat(78) + "9"
-        val PUZZLE_COUNTS = mapOf("EASY" to 150, "MEDIUM" to 150, "HARD" to 150)
+        // 150 per difficulty from data.txt and 150 from puzzles.txt.
+        val PUZZLE_COUNTS = mapOf("EASY" to 300, "MEDIUM" to 300, "HARD" to 300)
+        const val PUZZLE_TOTAL = 900
         const val HOUR = 60 * 60 * 1000L
         const val OCT_23_UTC = 20_749 * 24 * HOUR
         const val DAY = 20_749L

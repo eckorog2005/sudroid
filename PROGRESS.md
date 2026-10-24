@@ -14,7 +14,8 @@ The plan for turning the 2012 app into a modern Android game, step by step. Tick
   7. Step 5 in progress. Done and merged in [#18](https://github.com/eckorog2005/sudroid/pull/18): each solved game is recorded in a new `completed_games` table (Room 3→4 auto-migration), and a Statistics screen from the menu shows games completed, the current and longest streak of days with a finished game, and the count, best and average time per difficulty. The daily challenge can build its streaks on the same table.
   8. Done and merged in [#19](https://github.com/eckorog2005/sudroid/pull/19): a Daily Challenge button on the menu opens the same puzzle for everyone on a given day, stepping through all 450 puzzles by a prime stride before any repeats. It saves in its own `saved_game` slot, so it never overwrites the regular game, and keeps its day across process death, so a challenge started before midnight resumes as the same one. Solving it records the challenge's day in `completed_games.daily_day` (Room 4→5 auto-migration); the menu shows "Solved today" and the daily streak, and the Statistics screen shows the current and longest daily streak.
   9. Done and merged in [#20](https://github.com/eckorog2005/sudroid/pull/20): a Hint button reveals one cell, using `Solver.hint`, which solves from the givens alone, and selects it. The hint is an ordinary move, so undo takes it back; hints are not counted or recorded yet.
-  10. Done on `feat/hint-techniques`: each hint says why its digit goes there, in a snackbar the next move dismisses. `Hint.Reason` is a corrected mistake, a naked single, a hidden single in the cell's row, column or box, or, when no single applies, the solution. Without a selection a hint prefers a wrong entry, then a naked single, then a hidden single. Harder techniques (pairs, pointing, X-wing) fall back to the solution for now; difficulty grading can build on the same detection.
+  10. Done and merged in [#21](https://github.com/eckorog2005/sudroid/pull/21): each hint says why its digit goes there, in a snackbar the next move dismisses. `Hint.Reason` is a corrected mistake, a naked single, a hidden single in the cell's row, column or box, or, when no single applies, the solution. Without a selection a hint prefers a wrong entry, then a naked single, then a hidden single. Harder techniques (pairs, pointing, X-wing) fall back to the solution for now; difficulty grading can build on the same detection.
+  11. Done on `feat/more-puzzles`: 450 generated puzzles (IDs 451 to 900) join the original 450, graded by `Grader` by the technique they need: naked singles for easy, hidden singles for medium, locked candidates for hard. `./gradlew :engine:generatePuzzles` appends more to `puzzles.txt`, and Room version 6 inserts them on existing installs. The original puzzles keep their labels, and the daily challenge now steps through all 900, so each day maps to a different puzzle than before. Step 5 is complete.
 
 ## 1. Port the engine to Kotlin with tests: done
 
@@ -69,7 +70,7 @@ Existing bugs this step fixes:
 - [x] Daily challenge chosen from the date, with streaks ([#19](https://github.com/eckorog2005/sudroid/pull/19))
 - [x] Stats: best and average time per difficulty, games completed, streaks
 - [x] Hints built on `Solver`: reveal a cell ([#20](https://github.com/eckorog2005/sudroid/pull/20)), then explain the technique (naked and hidden singles)
-- [ ] More puzzles: generate them with the uniqueness check and grade difficulty by technique, or bundle a larger set
+- [x] More puzzles: generate them with the uniqueness check and grade difficulty by technique, or bundle a larger set (generated and bundled; the original 450 keep their labels)
 
 ## Unscheduled
 

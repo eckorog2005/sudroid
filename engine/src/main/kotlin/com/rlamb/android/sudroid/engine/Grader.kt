@@ -44,15 +44,10 @@ object Grader {
 }
 
 private class Grading(private val digits: IntArray) {
-    private val candidates = IntArray(Board.CELL_COUNT)
+    private val candidates = candidateMasks(digits)
     private var hardest = Technique.NAKED_SINGLE
 
     fun run(): Technique? {
-        for (i in digits.indices) {
-            if (digits[i] != 0) continue
-            val used = PEERS[i].fold(0) { mask, peer -> mask or (1 shl digits[peer]) }
-            candidates[i] = ALL_DIGITS and used.inv()
-        }
         while (digits.any { it == 0 }) {
             when {
                 placeNakedSingle() -> {}
@@ -75,7 +70,7 @@ private class Grading(private val digits: IntArray) {
     }
 
     private fun placeHiddenSingle(): Boolean {
-        for (house in HOUSES) {
+        for (house in HOUSE_INDICES) {
             for (digit in 1..Board.SIZE) {
                 val spots = house.filter { candidates[it] and (1 shl digit) != 0 }
                 if (spots.size == 1) {
@@ -88,32 +83,14 @@ private class Grading(private val digits: IntArray) {
     }
 
     private fun eliminateLockedCandidates(): Boolean {
-        for (house in HOUSES) {
-            for (digit in 1..Board.SIZE) {
-                val bit = 1 shl digit
-                val spots = house.filter { candidates[it] and bit != 0 }
-                if (spots.isEmpty()) continue
-                for (other in HOUSES) {
-                    if (other === house || !other.containsAll(spots)) continue
-                    val outside = other.filter { it !in house && candidates[it] and bit != 0 }
-                    if (outside.isEmpty()) continue
-                    outside.forEach { candidates[it] = candidates[it] and bit.inv() }
-                    return true
-                }
-            }
-        }
-        return false
+        val elimination = lockedCandidates(candidates).firstOrNull() ?: return false
+        elimination.applyTo(candidates)
+        return true
     }
 
     private fun place(i: Int, digit: Int) {
         digits[i] = digit
         candidates[i] = 0
-        PEERS[i].forEach { candidates[it] = candidates[it] and (1 shl digit).inv() }
-    }
-
-    private companion object {
-        const val ALL_DIGITS = 0b11_1111_1110
-        val PEERS: List<List<Int>> = Cell.ALL.map { cell -> cell.peers.map(Cell::index) }
-        val HOUSES: List<Set<Int>> = Cell.HOUSES.map { house -> house.mapTo(linkedSetOf(), Cell::index) }
+        PEER_INDICES[i].forEach { candidates[it] = candidates[it] and (1 shl digit).inv() }
     }
 }

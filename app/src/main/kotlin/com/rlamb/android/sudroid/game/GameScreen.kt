@@ -44,6 +44,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -139,7 +140,9 @@ private fun GameContent(
     val resources = LocalResources.current
     // Restarting on the next move cancels showSnackbar, which dismisses the explanation.
     LaunchedEffect(state.hint) {
-        state.hint?.let { snackbarHostState.showSnackbar(explain(resources, it)) }
+        state.hint?.let {
+            snackbarHostState.showSnackbar(explain(resources, it), withDismissAction = true, duration = SnackbarDuration.Long)
+        }
     }
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { insets ->
         BoxWithConstraints(
@@ -259,7 +262,43 @@ private fun explain(resources: Resources, hint: Hint): String {
             row,
             col,
         )
+        is Hint.Reason.LockedCandidates -> {
+            val then = resources.getString(
+                when (val single = reason.then) {
+                    is Hint.Reason.HiddenSingle -> when (single.house) {
+                        Hint.House.ROW -> R.string.hint_leaves_hidden_single_row
+                        Hint.House.COLUMN -> R.string.hint_leaves_hidden_single_column
+                        Hint.House.BOX -> R.string.hint_leaves_hidden_single_box
+                    }
+                    else -> R.string.hint_leaves_naked_single
+                },
+                hint.digit,
+                row,
+                col,
+            )
+            (reason.locks.map { explainLock(resources, it) } + then).joinToString(" ")
+        }
         Hint.Reason.FromSolution -> resources.getString(R.string.hint_from_solution, hint.digit, row, col)
+    }
+}
+
+private fun explainLock(resources: Resources, lock: Hint.Lock): String {
+    val boxNames = resources.getStringArray(R.array.box_names)
+    val within = lock.within
+    val confinedTo = lock.confinedTo
+    return when {
+        within.house == Hint.House.BOX -> resources.getString(
+            if (confinedTo.house == Hint.House.ROW) R.string.hint_locked_in_row else R.string.hint_locked_in_column,
+            boxNames[within.index],
+            lock.digit,
+            confinedTo.index + 1,
+        )
+        else -> resources.getString(
+            if (within.house == Hint.House.ROW) R.string.hint_locked_from_row else R.string.hint_locked_from_column,
+            within.index + 1,
+            lock.digit,
+            boxNames[confinedTo.index],
+        )
     }
 }
 

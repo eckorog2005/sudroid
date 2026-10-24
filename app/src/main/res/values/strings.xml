@@ -17,6 +17,7 @@
     <string name="redo">Redo</string>
     <string name="notes">Notes</string>
     <string name="check">Check</string>
+    <string name="hint">Hint</string>
     <string name="mistakes">Show mistakes</string>
     <string name="mistakes_always">Always</string>
     <string name="mistakes_on_request">On request</string>

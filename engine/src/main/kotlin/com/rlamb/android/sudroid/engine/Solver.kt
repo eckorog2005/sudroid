@@ -38,7 +38,28 @@ object Solver {
 
     @JvmStatic
     fun hasUniqueSolution(board: Board): Boolean = countSolutions(board, limit = 2) == 1
+
+    /**
+     * The solution's digit for one cell, checked against the givens alone so wrong entries can be
+     * corrected. Prefers [preferred] when it is empty or wrong, then the first wrong entry, then the
+     * empty cell whose row, column and box rule out the most digits. Null when nothing is left to
+     * reveal or the givens have no solution.
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun hint(board: Board, preferred: Cell? = null): Hint? {
+        val solution = solve(board.reset()) ?: return null
+        fun isWrong(cell: Cell) = board.digitAt(cell).let { it != 0 && it != solution.digitAt(cell) }
+        val cell = preferred?.takeIf { board.digitAt(it) != solution.digitAt(it) }
+            ?: Cell.ALL.firstOrNull(::isWrong)
+            ?: Cell.ALL.filter { board.digitAt(it) == 0 }
+                .maxByOrNull { cell -> cell.peers.mapNotNullTo(mutableSetOf()) { board.digitAt(it).takeIf { d -> d != 0 } }.size }
+            ?: return null
+        return Hint(cell, solution.digitAt(cell))
+    }
 }
+
+data class Hint(val cell: Cell, val digit: Int)
 
 /** Backtracking over bitmasks of used digits, always branching on the most constrained cell. */
 private class Search(

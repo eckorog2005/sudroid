@@ -19,7 +19,7 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
 - `:engine` is pure Kotlin on the JVM, with no Android dependencies.
   - `Board` is immutable: every move returns a new board. Conflicts are worked out from the grid on each call, never stored.
   - `Cell` uses 0-based rows and columns.
-  - `Solver` does bitmask backtracking: `solve`, `countSolutions` and `hasUniqueSolution`.
+  - `Solver` does bitmask backtracking: `solve`, `countSolutions` and `hasUniqueSolution`. `hint` solves from the givens alone, so it can correct wrong entries.
 - `:app` is Kotlin and Jetpack Compose, in `src/main/kotlin`.
   - `SudroidActivity` is the only Activity; it keeps its original name so existing launcher shortcuts still work. `SudroidApp` runs Navigation 3 over the `Menu`, `Game(request)` (`New(difficulty)`, `Resume` or `Daily`), `Results(elapsedSeconds)` and `Statistics` keys. Finishing a game replaces `Game` with `Results`, so Back never returns to a solved board.
   - `GameViewModel` holds a `StateFlow<GameUiState>`, autosaves after every move, and counts time in `runClock()`, which the screen runs only while resumed.

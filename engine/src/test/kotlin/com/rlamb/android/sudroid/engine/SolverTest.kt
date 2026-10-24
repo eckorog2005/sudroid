@@ -52,6 +52,37 @@ class SolverTest {
     }
 
     @Test
+    fun `a hint reveals the selected cell when it is empty or wrong`() {
+        val board = Board.fromPuzzle(PUZZLE).place(Cell(0, 2), 1)
+
+        assertEquals(Hint(Cell(0, 3), 6), Solver.hint(board, preferred = Cell(0, 3)))
+        assertEquals(Hint(Cell(0, 2), 4), Solver.hint(board, preferred = Cell(0, 2)))
+    }
+
+    @Test
+    fun `a hint corrects a wrong entry before filling an empty cell`() {
+        val board = Board.fromPuzzle(PUZZLE).place(Cell(0, 2), 4).place(Cell(8, 0), 1)
+
+        assertEquals(Hint(Cell(8, 0), 3), Solver.hint(board, preferred = Cell(0, 2)))
+    }
+
+    @Test
+    fun `without a selection a hint fills the most constrained empty cell`() {
+        val board = Board.fromPuzzle(PUZZLE)
+        val hint = assertNotNull(Solver.hint(board))
+
+        assertEquals(0, board.digitAt(hint.cell))
+        assertEquals(SOLUTION[hint.cell.row * Board.SIZE + hint.cell.col] - '0', hint.digit)
+        val ruledOut = { cell: Cell -> cell.peers.map(board::digitAt).filter { it != 0 }.toSet().size }
+        assertEquals(Cell.ALL.filter { board.digitAt(it) == 0 }.maxOf(ruledOut), ruledOut(hint.cell))
+    }
+
+    @Test
+    fun `there is no hint for a solved board`() {
+        assertNull(Solver.hint(assertNotNull(Solver.solve(Board.fromPuzzle(PUZZLE))), preferred = Cell(0, 0)))
+    }
+
+    @Test
     fun `every bundled puzzle has exactly one solution`() {
         val data = File(System.getProperty("sudroid.puzzleData")).readText()
         val puzzles = PUZZLE_ROW.findAll(data).map { it.groupValues[1] to it.groupValues[2] }.toList()

@@ -95,6 +95,7 @@ fun GameScreen(viewModel: GameViewModel, onSolved: (elapsedSeconds: Int) -> Unit
         onRedo = viewModel::redo,
         onToggleNotes = viewModel::toggleNotesMode,
         onCheck = viewModel::checkMistakes,
+        onHint = viewModel::hint,
     )
 }
 
@@ -109,6 +110,7 @@ private fun GameContent(
     onRedo: () -> Unit,
     onToggleNotes: () -> Unit,
     onCheck: () -> Unit,
+    onHint: () -> Unit,
 ) {
     Scaffold { insets ->
         BoxWithConstraints(
@@ -124,7 +126,7 @@ private fun GameContent(
                 SudokuBoard(board, state.selected, state.showMistakes, onSelect, modifier)
             }
             val controls = @Composable { modifier: Modifier ->
-                Controls(state, onDigit, onErase, onReset, onUndo, onRedo, onToggleNotes, onCheck, modifier)
+                Controls(state, onDigit, onErase, onReset, onUndo, onRedo, onToggleNotes, onCheck, onHint, modifier)
             }
             if (maxWidth > maxHeight) {
                 Row(
@@ -298,6 +300,7 @@ private fun Controls(
     onRedo: () -> Unit,
     onToggleNotes: () -> Unit,
     onCheck: () -> Unit,
+    onHint: () -> Unit,
     modifier: Modifier,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -349,6 +352,9 @@ private fun Controls(
                     PadLabel(stringResource(R.string.check))
                 }
             }
+            OutlinedButton(onClick = onHint, weighted, contentPadding = PadButtonPadding) {
+                PadLabel(stringResource(R.string.hint))
+            }
             OutlinedButton(onClick = onReset, weighted, contentPadding = PadButtonPadding) {
                 PadLabel(stringResource(R.string.reset))
             }
@@ -380,6 +386,6 @@ private fun GameContentPreview() {
         .toggleNote(Cell(0, 4), 7)
         .toggleNote(Cell(0, 8), 1)
     SudroidTheme {
-        GameContent(GameUiState(board, selected = Cell(1, 1), elapsedSeconds = 83, canUndo = true), {}, {}, {}, {}, {}, {}, {}, {})
+        GameContent(GameUiState(board, selected = Cell(1, 1), elapsedSeconds = 83, canUndo = true), {}, {}, {}, {}, {}, {}, {}, {}, {})
     }
 }

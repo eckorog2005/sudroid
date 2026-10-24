@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Sudroid</string>
     <string name="easy">Easy</string>
     <string name="medium">Medium</string>
@@ -26,6 +26,26 @@
     <string name="hint_hidden_single_row">%1$d at row %2$d, column %3$d: no other cell in its row can take %1$d.</string>
     <string name="hint_hidden_single_column">%1$d at row %2$d, column %3$d: no other cell in its column can take %1$d.</string>
     <string name="hint_hidden_single_box">%1$d at row %2$d, column %3$d: no other cell in its box can take %1$d.</string>
+    <!-- %2$d names the digit, not a count, so no plural applies. -->
+    <string name="hint_locked_in_row" tools:ignore="PluralsCandidate">In the %1$s, %2$d can only go in row %3$d, so no other cell in row %3$d can take it.</string>
+    <string name="hint_locked_in_column" tools:ignore="PluralsCandidate">In the %1$s, %2$d can only go in column %3$d, so no other cell in column %3$d can take it.</string>
+    <string name="hint_locked_from_row" tools:ignore="PluralsCandidate">In row %1$d, %2$d can only go in the %3$s, so no other cell in that box can take it.</string>
+    <string name="hint_locked_from_column" tools:ignore="PluralsCandidate">In column %1$d, %2$d can only go in the %3$s, so no other cell in that box can take it.</string>
+    <string name="hint_leaves_naked_single">That leaves %1$d as the only digit for row %2$d, column %3$d.</string>
+    <string name="hint_leaves_hidden_single_row">That leaves row %2$d, column %3$d as the only place for %1$d in its row.</string>
+    <string name="hint_leaves_hidden_single_column">That leaves row %2$d, column %3$d as the only place for %1$d in its column.</string>
+    <string name="hint_leaves_hidden_single_box">That leaves row %2$d, column %3$d as the only place for %1$d in its box.</string>
+    <string-array name="box_names">
+        <item>top-left box</item>
+        <item>top-middle box</item>
+        <item>top-right box</item>
+        <item>middle-left box</item>
+        <item>center box</item>
+        <item>middle-right box</item>
+        <item>bottom-left box</item>
+        <item>bottom-middle box</item>
+        <item>bottom-right box</item>
+    </string-array>
     <string name="hint_from_solution">%1$d at row %2$d, column %3$d, from the solution. No single step finds it yet.</string>
     <string name="mistakes">Show mistakes</string>
     <string name="mistakes_always">Always</string>

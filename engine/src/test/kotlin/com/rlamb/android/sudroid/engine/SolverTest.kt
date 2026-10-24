@@ -6,6 +6,7 @@ import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -90,6 +91,60 @@ class SolverTest {
     }
 
     @Test
+    fun `when no single is left a hint explains the locked candidates that reveal one`() {
+        val (board, hint) = firstHintBeyondSingles(LOCKED_CANDIDATES_PUZZLE)
+        val reason = assertIs<Hint.Reason.LockedCandidates>(hint.reason)
+
+        assertEquals(assertNotNull(Solver.solve(board)).digitAt(hint.cell), hint.digit)
+        assertTrue(reason.then == Hint.Reason.NakedSingle || reason.then is Hint.Reason.HiddenSingle)
+        val lock = reason.locks.single()
+        val within = cellsOf(lock.within)
+        val confinedTo = cellsOf(lock.confinedTo)
+        val spots = within.filter { board.digitAt(it) == 0 && lock.digit in candidates(board, it) }
+        assertTrue(spots.size >= 2 && confinedTo.containsAll(spots))
+        assertTrue(hint.cell in confinedTo - within.toSet() || lock.digit == hint.digit)
+    }
+
+    @Test
+    fun `hints explain every step of a generated hard puzzle without falling back to the solution`() {
+        for (puzzle in generatedPuzzles().filter { it.difficulty == "HARD" }) {
+            var board = Board.fromPuzzle(puzzle.digits)
+            while (!board.isSolved) {
+                val hint = assertNotNull(Solver.hint(board))
+                assertTrue(hint.reason != Hint.Reason.FromSolution, "Puzzle ${puzzle.id} fell back at ${hint.cell}")
+                board = board.place(hint.cell, hint.digit)
+            }
+        }
+    }
+
+    @Test
+    fun `a hint on a selected cell uses locked candidates when no single finds it`() {
+        val (board, hint) = firstHintBeyondSingles(LOCKED_CANDIDATES_PUZZLE)
+
+        assertEquals(hint, Solver.hint(board, preferred = hint.cell))
+    }
+
+    /** Plays naked and hidden singles from the hints until a hint needs something more. */
+    private fun firstHintBeyondSingles(puzzle: String): Pair<Board, Hint> {
+        var board = Board.fromPuzzle(puzzle)
+        while (true) {
+            val hint = assertNotNull(Solver.hint(board))
+            if (hint.reason != Hint.Reason.NakedSingle && hint.reason !is Hint.Reason.HiddenSingle) return board to hint
+            board = board.place(hint.cell, hint.digit)
+        }
+    }
+
+    private fun cellsOf(area: Hint.Area): List<Cell> = Cell.ALL.filter {
+        when (area.house) {
+            Hint.House.ROW -> it.row == area.index
+            Hint.House.COLUMN -> it.col == area.index
+            Hint.House.BOX -> it.row / 3 * 3 + it.col / 3 == area.index
+        }
+    }
+
+    private fun candidates(board: Board, cell: Cell): Set<Int> = (1..Board.SIZE).toSet() - cell.peers.map(board::digitAt).toSet()
+
+    @Test
     fun `a hint falls back to the solution when no single technique applies`() {
         val hint = assertNotNull(Solver.hint(empty))
 
@@ -124,6 +179,8 @@ class SolverTest {
     }
 
     private companion object {
+        // Bundled puzzle 311, which Grader grades as needing locked candidates.
+        const val LOCKED_CANDIDATES_PUZZLE = "003001000608050090090200060800302650300000009054609003040003010030020406000400700"
         val PUZZLE_ROW = Regex("""INSERT INTO Puzzle values\('\d+', '(\w+)', '\d+', '(\d{81})'""")
     }
 }

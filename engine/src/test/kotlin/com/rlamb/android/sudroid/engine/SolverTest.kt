@@ -112,6 +112,17 @@ class SolverTest {
         assertEquals(emptyList(), ambiguous)
     }
 
+    @Test
+    fun `every generated puzzle has exactly one solution and none repeats a bundled one`() {
+        val legacy = PUZZLE_ROW.findAll(File(System.getProperty("sudroid.puzzleData")).readText()).map { it.groupValues[2] }
+        val generated = generatedPuzzles()
+
+        assertEquals(emptyList(), generated.filterNot { Solver.hasUniqueSolution(Board.fromPuzzle(it.digits)) })
+        val all = legacy.toList() + generated.map { it.digits }
+        assertEquals(all.size, all.toSet().size)
+        assertEquals((451..450 + generated.size).toList(), generated.map { it.id })
+    }
+
     private companion object {
         val PUZZLE_ROW = Regex("""INSERT INTO Puzzle values\('\d+', '(\w+)', '\d+', '(\d{81})'""")
     }

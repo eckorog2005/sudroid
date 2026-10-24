@@ -15,15 +15,30 @@ kotlin {
     }
 }
 
+val tools: SourceSet by sourceSets.creating {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
+}
+
 dependencies {
     testImplementation(libs.kotlin.test)
     testImplementation(platform(libs.junit.bom))
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
+val puzzleData = rootProject.layout.projectDirectory.file("app/src/main/assets/data.txt")
+val generatedPuzzles = rootProject.layout.projectDirectory.file("app/src/main/assets/puzzles.txt")
+
 tasks.test {
     useJUnitPlatform()
-    val puzzleData = rootProject.layout.projectDirectory.file("app/src/main/assets/data.txt")
-    inputs.file(puzzleData).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(puzzleData, generatedPuzzles).withPathSensitivity(PathSensitivity.RELATIVE)
     systemProperty("sudroid.puzzleData", puzzleData.asFile.absolutePath)
+    systemProperty("sudroid.generatedPuzzles", generatedPuzzles.asFile.absolutePath)
+}
+
+tasks.register<JavaExec>("generatePuzzles") {
+    description = "Appends -Pcount new puzzles per difficulty (default 150) to app/src/main/assets/puzzles.txt."
+    classpath = tools.runtimeClasspath
+    mainClass = "com.rlamb.android.sudroid.engine.tools.GeneratePuzzlesKt"
+    args(puzzleData.asFile, generatedPuzzles.asFile, providers.gradleProperty("count").getOrElse("150"))
 }

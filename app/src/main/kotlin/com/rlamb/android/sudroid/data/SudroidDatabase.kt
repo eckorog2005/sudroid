@@ -30,7 +30,7 @@ import com.rlamb.android.sudroid.game.parseElapsed
 
 @Database(
     entities = [PuzzleEntity::class, SavedGameEntity::class, CompletedGameEntity::class],
-    version = 5,
+    version = 6,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
         AutoMigration(from = 3, to = 4),
@@ -46,7 +46,7 @@ abstract class SudroidDatabase : RoomDatabase() {
 
         fun build(context: Context, name: String = NAME): SudroidDatabase =
             Room.databaseBuilder(context, SudroidDatabase::class.java, name)
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, AddGeneratedPuzzles(context.applicationContext, from = 5, to = 6))
                 .addCallback(SeedPuzzles(context.applicationContext))
                 .build()
     }
@@ -75,6 +75,24 @@ private class SeedPuzzles(private val context: Context) : RoomDatabase.Callback(
             lines.filter(String::isNotBlank).forEach(db::execSQL)
         }
         convertLegacyTables(db)
+        insertGeneratedPuzzles(context, db)
+    }
+}
+
+/**
+ * Adds the puzzles in `puzzles.txt` that the database lacks. When more are appended to the file, a
+ * new version adds another of these migrations.
+ */
+private class AddGeneratedPuzzles(private val context: Context, from: Int, to: Int) : Migration(from, to) {
+    override fun migrate(db: SupportSQLiteDatabase) = insertGeneratedPuzzles(context, db)
+}
+
+private fun insertGeneratedPuzzles(context: Context, db: SupportSQLiteDatabase) {
+    context.assets.open("puzzles.txt").bufferedReader().useLines { lines ->
+        lines.filter(String::isNotBlank).forEach { line ->
+            val (id, difficulty, digits) = line.split(',')
+            db.execSQL("INSERT OR IGNORE INTO puzzles (id, difficulty, digits) VALUES (?, ?, ?)", arrayOf<Any>(id.toInt(), difficulty, digits))
+        }
     }
 }
 

@@ -74,9 +74,12 @@ fun SudroidApp(
         entryProvider = entryProvider {
             entry<Menu> {
                 val hasSavedGame by remember { repository.hasSavedGame() }.collectAsStateWithLifecycle(false)
+                val stats by remember { statsRepository.stats() }.collectAsStateWithLifecycle(Stats())
                 val mistakeMode by settings.mistakeMode.collectAsStateWithLifecycle()
                 MenuScreen(
                     hasSavedGame,
+                    stats.dailySolvedToday,
+                    stats.dailyCurrentStreak,
                     mistakeMode,
                     settings::setMistakeMode,
                     onStart = { request -> backStack.add(Game(request)) },

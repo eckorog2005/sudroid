@@ -53,7 +53,7 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class GameViewModelTest {
-    private val repository = FakeGameRepository(PUZZLE)
+    private val repository = FakeGameRepository(PUZZLE, DAILY_PUZZLE).apply { today = TODAY }
     private lateinit var saveScope: CoroutineScope
 
     @BeforeTest
@@ -304,7 +304,7 @@ class GameViewModelTest {
         assertEquals(10, viewModel.state.value.elapsedSeconds)
         assertFalse(clock.isActive)
         assertNull(repository.saved)
-        assertEquals(listOf(PUZZLE to 10), repository.completed)
+        assertEquals(listOf(Completed(PUZZLE, 10)), repository.completed)
     }
 
     @Test
@@ -384,6 +384,66 @@ class GameViewModelTest {
         assertFalse(viewModel.state.value.showMistakes)
     }
 
+    @Test
+    fun `the daily challenge starts today's puzzle and saves apart from the regular game`() = runTest {
+        val regular = SavedGame(PUZZLE, EMPTY_ENTRIES, elapsedSeconds = 75)
+        repository.saved = regular
+
+        val viewModel = daily()
+        viewModel.select(Cell(0, 0))
+        viewModel.enter(4)
+
+        assertEquals(listOf(TODAY), repository.requestedDailyDays)
+        assertEquals(0, viewModel.state.value.elapsedSeconds)
+        val saved = assertNotNull(repository.savedDaily)
+        assertEquals(DAILY_PUZZLE, saved.puzzle)
+        assertEquals(TODAY, saved.dailyDay)
+        assertEquals("4" + EMPTY_ENTRIES.drop(1), saved.entries)
+        assertEquals(regular, repository.saved)
+    }
+
+    @Test
+    fun `the daily challenge resumes today's save`() = runTest {
+        val entries = EMPTY_ENTRIES.replaceRange(0, 1, "4")
+        repository.savedDaily = SavedGame(DAILY_PUZZLE, entries, elapsedSeconds = 40, dailyDay = TODAY)
+
+        val state = daily().state.value
+
+        assertEquals(entries, assertNotNull(state.board).entriesString())
+        assertEquals(40, state.elapsedSeconds)
+        assertEquals(emptyList(), repository.requestedDailyDays)
+    }
+
+    @Test
+    fun `a daily challenge restored after midnight keeps its day`() = runTest {
+        val savedState = SavedStateHandle()
+        val first = daily(savedState)
+        first.select(Cell(0, 0))
+        first.enter(4)
+        repository.today = TODAY + 1
+
+        val restored = daily(savedState)
+
+        assertEquals("4" + EMPTY_ENTRIES.drop(1), restored.state.value.board?.entriesString())
+        assertEquals(listOf(TODAY), repository.requestedDailyDays)
+    }
+
+    @Test
+    fun `solving the daily challenge records its day`() = runTest {
+        val lastCell = Cell.ALL.first { !SOLUTION.isGiven(it) }
+        repository.savedDaily = SavedGame(DAILY_PUZZLE, SOLUTION.clear(lastCell).entriesString(), 30, dailyDay = TODAY)
+        val viewModel = daily()
+
+        viewModel.select(lastCell)
+        viewModel.enter(SOLUTION.digitAt(lastCell))
+
+        assertEquals(listOf(Completed(DAILY_PUZZLE, 30, TODAY)), repository.completed)
+        assertNull(repository.savedDaily)
+    }
+
+    private fun daily(savedState: SavedStateHandle = SavedStateHandle()) =
+        GameViewModel(repository, GameRequest.Daily, saveScope, savedState)
+
     private fun newGame(mistakeMode: MistakeMode = MistakeMode.ALWAYS) =
         GameViewModel(repository, GameRequest.New(Difficulty.EASY), saveScope, SavedStateHandle(), mistakeMode)
 
@@ -399,35 +459,51 @@ class GameViewModelTest {
             difficulty = Difficulty.EASY,
             digits = "012604830700800052806003000280065000030000020000380046000900105950008007068507290",
         )
+        val DAILY_PUZZLE = PUZZLE.copy(id = 2, difficulty = Difficulty.HARD)
         val SOLUTION: Board = checkNotNull(Solver.solve(Board.fromPuzzle(PUZZLE.digits)))
         val EMPTY_ENTRIES = "0".repeat(81)
+        const val TODAY = 20_750L
     }
 }
 
-private class FakeGameRepository(private val puzzle: Puzzle) : GameRepository {
+private data class Completed(val puzzle: Puzzle, val elapsedSeconds: Int, val dailyDay: Long? = null)
+
+private class FakeGameRepository(private val puzzle: Puzzle, private val dailyPuzzle: Puzzle) : GameRepository {
     var saved: SavedGame? = null
+    var savedDaily: SavedGame? = null
+    var today = 0L
     val requestedDifficulties = mutableListOf<Difficulty>()
-    val completed = mutableListOf<Pair<Puzzle, Int>>()
+    val requestedDailyDays = mutableListOf<Long>()
+    val completed = mutableListOf<Completed>()
 
     override suspend fun randomPuzzle(difficulty: Difficulty): Puzzle {
         requestedDifficulties += difficulty
         return puzzle
     }
 
+    override suspend fun dailyPuzzle(epochDay: Long): Puzzle {
+        requestedDailyDays += epochDay
+        return dailyPuzzle
+    }
+
+    override fun today(): Long = today
+
     override suspend fun savedGame(): SavedGame? = saved
+
+    override suspend fun savedDailyGame(epochDay: Long): SavedGame? = savedDaily?.takeIf { it.dailyDay == epochDay }
 
     override fun hasSavedGame(): Flow<Boolean> = flowOf(saved != null)
 
     override suspend fun save(game: SavedGame) {
-        saved = game
+        if (game.dailyDay == null) saved = game else savedDaily = game
     }
 
     override suspend fun deleteSavedGame() {
         saved = null
     }
 
-    override suspend fun completeGame(puzzle: Puzzle, elapsedSeconds: Int) {
-        completed += puzzle to elapsedSeconds
-        saved = null
+    override suspend fun completeGame(puzzle: Puzzle, elapsedSeconds: Int, dailyDay: Long?) {
+        completed += Completed(puzzle, elapsedSeconds, dailyDay)
+        if (dailyDay == null) saved = null else savedDaily = null
     }
 }

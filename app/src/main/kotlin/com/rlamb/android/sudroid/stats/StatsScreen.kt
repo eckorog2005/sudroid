@@ -65,6 +65,10 @@ fun StatsScreen(stats: Stats, onBackToMenu: () -> Unit) {
                 StatRow(stringResource(R.string.stats_current_streak), days(stats.currentStreak))
                 StatRow(stringResource(R.string.stats_longest_streak), days(stats.longestStreak))
             }
+            StatsCard(stringResource(R.string.daily)) {
+                StatRow(stringResource(R.string.stats_current_streak), days(stats.dailyCurrentStreak))
+                StatRow(stringResource(R.string.stats_longest_streak), days(stats.dailyLongestStreak))
+            }
             for ((difficulty, label) in DifficultyLabels) {
                 val entry = stats.byDifficulty.getValue(difficulty)
                 StatsCard(stringResource(label)) {
@@ -114,7 +118,7 @@ private val DifficultyLabels = listOf(
     Difficulty.HARD to R.string.hard,
 )
 
-@Preview(showBackground = true, widthDp = 360, heightDp = 900)
+@Preview(showBackground = true, widthDp = 360, heightDp = 1040)
 @Composable
 private fun StatsScreenPreview() {
     val stats = Stats(
@@ -125,6 +129,8 @@ private fun StatsScreenPreview() {
         ),
         currentStreak = 4,
         longestStreak = 9,
+        dailyCurrentStreak = 2,
+        dailyLongestStreak = 5,
     )
     SudroidTheme { StatsScreen(stats, onBackToMenu = {}) }
 }

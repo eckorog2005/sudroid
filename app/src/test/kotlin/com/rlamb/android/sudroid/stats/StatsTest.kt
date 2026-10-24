@@ -22,6 +22,8 @@ package com.rlamb.android.sudroid.stats
 import com.rlamb.android.sudroid.game.Difficulty
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class StatsTest {
     @Test
@@ -78,7 +80,36 @@ class StatsTest {
         assertEquals(3, stats.longestStreak)
     }
 
-    private fun easy(seconds: Int = 60, day: Long = TODAY) = Completion(Difficulty.EASY, seconds, day)
+    @Test
+    fun `daily streaks count challenge days, not the days they were finished on`() {
+        val completions = listOf(
+            easy(day = TODAY, dailyDay = TODAY),
+            // Yesterday's challenge, finished just after midnight.
+            easy(day = TODAY, dailyDay = TODAY - 1),
+            easy(day = TODAY - 3, dailyDay = TODAY - 3),
+            easy(day = TODAY - 2),
+        )
+
+        val stats = statsOf(completions, TODAY)
+
+        assertEquals(2, stats.dailyCurrentStreak)
+        assertEquals(2, stats.dailyLongestStreak)
+        assertTrue(stats.dailySolvedToday)
+        assertEquals(1, stats.currentStreak)
+    }
+
+    @Test
+    fun `an unsolved daily challenge today leaves yesterday's streak current`() {
+        val days = listOf(TODAY - 9, TODAY - 8, TODAY - 7, TODAY - 2, TODAY - 1)
+        val stats = statsOf(days.map { easy(day = it, dailyDay = it) } + easy(day = TODAY), TODAY)
+
+        assertEquals(2, stats.dailyCurrentStreak)
+        assertEquals(3, stats.dailyLongestStreak)
+        assertFalse(stats.dailySolvedToday)
+    }
+
+    private fun easy(seconds: Int = 60, day: Long = TODAY, dailyDay: Long? = null) =
+        Completion(Difficulty.EASY, seconds, day, dailyDay)
 
     private companion object {
         const val TODAY = 20_750L

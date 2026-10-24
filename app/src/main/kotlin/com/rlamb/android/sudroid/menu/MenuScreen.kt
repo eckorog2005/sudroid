@@ -43,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
@@ -56,6 +57,8 @@ import com.rlamb.android.sudroid.ui.SudroidTheme
 @Composable
 fun MenuScreen(
     hasSavedGame: Boolean,
+    dailySolvedToday: Boolean,
+    dailyStreak: Int,
     mistakeMode: MistakeMode,
     onMistakeMode: (MistakeMode) -> Unit,
     onStart: (GameRequest) -> Unit,
@@ -71,6 +74,22 @@ fun MenuScreen(
             Spacer(Modifier.height(24.dp))
             Button(onClick = { onStart(GameRequest.Resume) }, ButtonModifier, enabled = hasSavedGame) {
                 Text(stringResource(R.string.resume))
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Button(onClick = { onStart(GameRequest.Daily) }, ButtonModifier, enabled = !dailySolvedToday) {
+                    Text(stringResource(R.string.daily))
+                }
+                val status = listOfNotNull(
+                    stringResource(R.string.daily_solved).takeIf { dailySolvedToday },
+                    pluralStringResource(R.plurals.daily_streak, dailyStreak, dailyStreak).takeIf { dailyStreak > 0 },
+                )
+                if (status.isNotEmpty()) {
+                    Text(
+                        status.joinToString(" · "),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             for ((difficulty, label) in DifficultyLabels) {
                 FilledTonalButton(onClick = { onStart(GameRequest.New(difficulty)) }, ButtonModifier) {
@@ -114,5 +133,15 @@ private val MistakeLabels = listOf(
 @Preview(showBackground = true, widthDp = 360, heightDp = 720)
 @Composable
 private fun MenuScreenPreview() {
-    SudroidTheme { MenuScreen(hasSavedGame = true, mistakeMode = MistakeMode.ALWAYS, onMistakeMode = {}, onStart = {}, onStats = {}) }
+    SudroidTheme {
+        MenuScreen(
+            hasSavedGame = true,
+            dailySolvedToday = false,
+            dailyStreak = 3,
+            mistakeMode = MistakeMode.ALWAYS,
+            onMistakeMode = {},
+            onStart = {},
+            onStats = {},
+        )
+    }
 }

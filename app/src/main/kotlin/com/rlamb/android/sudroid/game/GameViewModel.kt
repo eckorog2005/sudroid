@@ -64,6 +64,13 @@ class GameViewModel(
     val state: StateFlow<GameUiState> = _state.asStateFlow()
 
     private lateinit var puzzle: Puzzle
+
+    // Kept across process death, so a challenge started before midnight is still the one that resumes.
+    private val dailyDay: Long? = if (request == GameRequest.Daily) {
+        savedState.get<Long>(DAILY_DAY) ?: repository.today().also { savedState[DAILY_DAY] = it }
+    } else {
+        null
+    }
     private val undoStack = ArrayDeque<Board>()
     private val redoStack = ArrayDeque<Board>()
 
@@ -75,8 +82,15 @@ class GameViewModel(
         // already started must resume from its autosave instead of starting over.
         val resume = request == GameRequest.Resume || savedState.get<Boolean>(STARTED) == true
         viewModelScope.launch {
-            val saved = if (resume) repository.savedGame() else null
-            puzzle = saved?.puzzle ?: repository.randomPuzzle((request as? GameRequest.New)?.difficulty ?: Difficulty.EASY)
+            val saved = when {
+                dailyDay != null -> repository.savedDailyGame(dailyDay)
+                resume -> repository.savedGame()
+                else -> null
+            }
+            puzzle = saved?.puzzle ?: when {
+                dailyDay != null -> repository.dailyPuzzle(dailyDay)
+                else -> repository.randomPuzzle((request as? GameRequest.New)?.difficulty ?: Difficulty.EASY)
+            }
             val board = Board.fromPuzzle(puzzle.digits).let {
                 if (saved != null) it.withEntries(saved.entries).withNotes(saved.notes) else it
             }
@@ -87,7 +101,7 @@ class GameViewModel(
             for (write in pendingWrites) {
                 when (write) {
                     is PendingWrite.Save -> repository.save(write.game)
-                    is PendingWrite.Complete -> repository.completeGame(write.puzzle, write.elapsedSeconds)
+                    is PendingWrite.Complete -> repository.completeGame(write.puzzle, write.elapsedSeconds, write.dailyDay)
                 }
             }
         }
@@ -162,22 +176,24 @@ class GameViewModel(
             it.copy(board = board, canUndo = undoStack.isNotEmpty(), canRedo = redoStack.isNotEmpty(), checking = false)
         }
         val current = _state.value
-        if (current.isSolved) pendingWrites.trySend(PendingWrite.Complete(puzzle, current.elapsedSeconds)) else save()
+        if (current.isSolved) pendingWrites.trySend(PendingWrite.Complete(puzzle, current.elapsedSeconds, dailyDay)) else save()
     }
 
     private fun save() {
         val current = state.value
         val board = current.board ?: return
         if (current.isSolved) return
-        pendingWrites.trySend(PendingWrite.Save(SavedGame(puzzle, board.entriesString(), current.elapsedSeconds, board.notesString())))
+        val game = SavedGame(puzzle, board.entriesString(), current.elapsedSeconds, board.notesString(), dailyDay)
+        pendingWrites.trySend(PendingWrite.Save(game))
     }
 
     private sealed interface PendingWrite {
         data class Save(val game: SavedGame) : PendingWrite
-        data class Complete(val puzzle: Puzzle, val elapsedSeconds: Int) : PendingWrite
+        data class Complete(val puzzle: Puzzle, val elapsedSeconds: Int, val dailyDay: Long?) : PendingWrite
     }
 
     private companion object {
         const val STARTED = "started"
+        const val DAILY_DAY = "dailyDay"
     }
 }

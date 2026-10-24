@@ -100,18 +100,17 @@ class SudroidDatabaseTest {
     @Test
     fun savingReplacesTheSavedGameAndDeletingClearsIt() = runBlocking {
         val repository = repository()
-        val dao = checkNotNull(database).gameDao()
         val first = SavedGame(repository.randomPuzzle(Difficulty.EASY), ENTRIES, elapsedSeconds = 1)
         val second = SavedGame(repository.randomPuzzle(Difficulty.HARD), ENTRIES, elapsedSeconds = 2, notes = NOTES)
 
         repository.save(first)
         repository.save(second)
         assertEquals(second, repository.savedGame())
-        assertTrue(dao.hasSavedGame().first())
+        assertTrue(repository.hasSavedGame().first())
 
         repository.deleteSavedGame()
         assertNull(repository.savedGame())
-        assertFalse(dao.hasSavedGame().first())
+        assertFalse(repository.hasSavedGame().first())
     }
 
     @Test
@@ -134,10 +133,51 @@ class SudroidDatabaseTest {
     }
 
     @Test
+    fun theDailyChallengeIsSavedAndCompletedApartFromTheRegularGame() = runBlocking {
+        val repository = repository()
+        val regular = SavedGame(repository.randomPuzzle(Difficulty.EASY), ENTRIES, elapsedSeconds = 1)
+        val daily = SavedGame(repository.dailyPuzzle(DAY), ENTRIES, elapsedSeconds = 2, notes = NOTES, dailyDay = DAY)
+
+        repository.save(regular)
+        repository.save(daily)
+        assertEquals(regular, repository.savedGame())
+        assertEquals(daily, repository.savedDailyGame(DAY))
+        assertNull(repository.savedDailyGame(DAY + 1))
+
+        repository.completeGame(daily.puzzle, elapsedSeconds = 300, dailyDay = DAY)
+        assertNull(repository.savedDailyGame(DAY))
+        assertEquals(regular, repository.savedGame())
+        assertTrue(repository.hasSavedGame().first())
+    }
+
+    @Test
+    fun dailyPuzzlesRepeatOnlyAfterEveryPuzzleHasComeUp() = runBlocking {
+        val repository = repository()
+
+        val ids = (DAY until DAY + 450).map { repository.dailyPuzzle(it).id }
+
+        assertEquals(450, ids.toSet().size)
+        assertEquals(ids.first(), repository.dailyPuzzle(DAY + 450).id)
+    }
+
+    @Test
+    fun solvingTodaysChallengeShowsInTheStats() = runBlocking {
+        val repository = repository(now = { OCT_23_UTC + HOUR }, timeZone = TimeZone.getTimeZone("UTC"))
+        val today = repository.today()
+
+        repository.completeGame(repository.dailyPuzzle(today), elapsedSeconds = 300, dailyDay = today)
+
+        val stats = repository.stats().first()
+        assertTrue(stats.dailySolvedToday)
+        assertEquals(1, stats.dailyCurrentStreak)
+    }
+
+    @Test
     fun upgradeFromVersion2KeepsTheGameWithNoNotes() = runBlocking {
         SudroidDatabase.build(context, NAME).apply { openHelper.writableDatabase }.close()
         val pattern = SQLiteDatabase.openDatabase(context.getDatabasePath(NAME).path, null, 0).use { db ->
             db.execSQL("DROP TABLE saved_game")
+            db.execSQL("DROP TABLE completed_games")
             db.execSQL(
                 "CREATE TABLE `saved_game` (`slot` INTEGER NOT NULL, `puzzle_id` INTEGER NOT NULL, " +
                     "`entries` TEXT NOT NULL, `elapsed_seconds` INTEGER NOT NULL, PRIMARY KEY(`slot`))",
@@ -147,9 +187,42 @@ class SudroidDatabaseTest {
             db.rawQuery("SELECT digits FROM puzzles WHERE id = 12", null).use { it.moveToFirst(); it.getString(0) }
         }
 
-        val saved = repository().savedGame()
+        val repository = repository()
 
-        assertEquals(SavedGame(Puzzle(12, Difficulty.EASY, pattern), ENTRIES, elapsedSeconds = 30, notes = ""), saved)
+        assertEquals(
+            SavedGame(Puzzle(12, Difficulty.EASY, pattern), ENTRIES, elapsedSeconds = 30, notes = ""),
+            repository.savedGame(),
+        )
+        assertNull(repository.savedDailyGame(DAY))
+    }
+
+    @Test
+    fun upgradeFromVersion4KeepsTheGameAndTheStats() = runBlocking {
+        SudroidDatabase.build(context, NAME).apply { openHelper.writableDatabase }.close()
+        SQLiteDatabase.openDatabase(context.getDatabasePath(NAME).path, null, 0).use { db ->
+            db.execSQL("DROP TABLE saved_game")
+            db.execSQL("DROP TABLE completed_games")
+            db.execSQL(
+                "CREATE TABLE `saved_game` (`slot` INTEGER NOT NULL, `puzzle_id` INTEGER NOT NULL, " +
+                    "`entries` TEXT NOT NULL, `elapsed_seconds` INTEGER NOT NULL, `notes` TEXT NOT NULL DEFAULT '', " +
+                    "PRIMARY KEY(`slot`))",
+            )
+            db.execSQL(
+                "CREATE TABLE `completed_games` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`puzzle_id` INTEGER NOT NULL, `difficulty` TEXT NOT NULL, `elapsed_seconds` INTEGER NOT NULL, " +
+                    "`completed_at` INTEGER NOT NULL)",
+            )
+            db.execSQL("INSERT INTO saved_game VALUES (0, 12, '$ENTRIES', 30, '$NOTES')")
+            db.execSQL("INSERT INTO completed_games (puzzle_id, difficulty, elapsed_seconds, completed_at) VALUES (5, 'EASY', 90, 0)")
+            db.version = 4
+        }
+        val repository = repository()
+
+        assertEquals(NOTES, repository.savedGame()?.notes)
+        assertNull(repository.savedDailyGame(DAY))
+        val stats = repository.stats().first()
+        assertEquals(1, stats.completed)
+        assertEquals(0, stats.dailyLongestStreak)
     }
 
     /** Builds the database the way the original SQLiteOpenHelper did and returns puzzle 12's pattern. */
@@ -190,5 +263,6 @@ class SudroidDatabaseTest {
         val PUZZLE_COUNTS = mapOf("EASY" to 150, "MEDIUM" to 150, "HARD" to 150)
         const val HOUR = 60 * 60 * 1000L
         const val OCT_23_UTC = 20_749 * 24 * HOUR
+        const val DAY = 20_749L
     }
 }

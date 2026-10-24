@@ -2,22 +2,16 @@
 
 The plan for turning the 2012 app into a modern Android game, step by step. Tick items as their PRs merge and link the PR.
 
-## Where we left off (2026-10-24)
+## Current state (2026-10-24)
 
-- Steps 1 and 2 are merged. Step 3 is in progress, one branch per feature:
-  1. Done on `feat/core-play-features`: undo and redo, held in memory by `GameViewModel` (the history is lost when the game screen closes).
-  2. Done and merged in [#7](https://github.com/eckorog2005/sudroid/pull/7): notes, stored in `Board` so undo covers them, and saved in a new `saved_game.notes` column through a Room 2→3 auto-migration, so `entries` keeps its format.
-  3. Done and merged in [#8](https://github.com/eckorog2005/sudroid/pull/8): the selected cell's row, column and box get a tint, and cells with the same digit get a stronger one. It only changes drawing; `Cell.peers` is now public.
-  4. Done and merged in [#9](https://github.com/eckorog2005/sudroid/pull/9): each pad button shows how many of its digit are left (`Board.remaining`) and is disabled at 0.
-  5. Done and merged in [#10](https://github.com/eckorog2005/sudroid/pull/10): a global setting on the menu (always, on request, never), kept in `SharedPreferences` through `SettingsRepository`. Conflicts get a corner triangle as well as red, and on request a Check button shows them until the next move. Step 3 is complete.
-  6. Step 4 in progress. Done in [#11](https://github.com/eckorog2005/sudroid/pull/11): dynamic color on Android 12+ with the static scheme as fallback, light and dark following the system, and a day/night window theme so the launch frame matches. Then done on `feat/large-screens`: the board and pad are capped in width and centered, so tablets, foldables and resized windows no longer stretch them; the layout follows the window size, not the device. Then done on `feat/accessibility`: each cell is a tap target with a spoken description (position, digit or notes, given, conflict) and a selected state, the pad buttons read as "digit, count left", pad labels shrink to fit instead of clipping at large font sizes, and the mistake setting is a radio list that scales with the font. Then done on `feat/adaptive-icon`: a drawn vector icon with a monochrome layer, replacing the 2010 raster icon. Then done on `feat/splash-screen`: the SplashScreen API through `core-splashscreen`, showing the icon's grid on the icon's indigo and handing over to `Theme.Sudroid`. Step 4 is complete.
-  7. Step 5 in progress. Done and merged in [#18](https://github.com/eckorog2005/sudroid/pull/18): each solved game is recorded in a new `completed_games` table (Room 3→4 auto-migration), and a Statistics screen from the menu shows games completed, the current and longest streak of days with a finished game, and the count, best and average time per difficulty. The daily challenge can build its streaks on the same table.
-  8. Done and merged in [#19](https://github.com/eckorog2005/sudroid/pull/19): a Daily Challenge button on the menu opens the same puzzle for everyone on a given day, stepping through all 450 puzzles by a prime stride before any repeats. It saves in its own `saved_game` slot, so it never overwrites the regular game, and keeps its day across process death, so a challenge started before midnight resumes as the same one. Solving it records the challenge's day in `completed_games.daily_day` (Room 4→5 auto-migration); the menu shows "Solved today" and the daily streak, and the Statistics screen shows the current and longest daily streak.
-  9. Done and merged in [#20](https://github.com/eckorog2005/sudroid/pull/20): a Hint button reveals one cell, using `Solver.hint`, which solves from the givens alone, and selects it. The hint is an ordinary move, so undo takes it back; hints are not counted or recorded yet.
-  10. Done and merged in [#21](https://github.com/eckorog2005/sudroid/pull/21): each hint says why its digit goes there, in a snackbar the next move dismisses. `Hint.Reason` is a corrected mistake, a naked single, a hidden single in the cell's row, column or box, or, when no single applies, the solution. Without a selection a hint prefers a wrong entry, then a naked single, then a hidden single. Harder techniques (pairs, pointing, X-wing) fall back to the solution for now; difficulty grading can build on the same detection.
-  11. Done and merged in [#22](https://github.com/eckorog2005/sudroid/pull/22): 450 generated puzzles (IDs 451 to 900) join the original 450, graded by `Grader` by the technique they need: naked singles for easy, hidden singles for medium, locked candidates for hard. `./gradlew :engine:generatePuzzles` appends more to `puzzles.txt`, and Room version 6 inserts them on existing installs. The original puzzles keep their labels, and the daily challenge now steps through all 900, so each day maps to a different puzzle than before. Step 5 is complete.
-  12. Done and merged in [#27](https://github.com/eckorog2005/sudroid/pull/27): when no single is on the board, a hint chains locked-candidates steps until one reveals a single and explains each step it needs ("In the center box, 7 can only go in row 5, so no other cell in row 5 can take it. That leaves ..."). Every generated hard puzzle can now be played to the end on hints without one falling back to the solution; most need one step, the longest three.
-  13. Done on `feat/count-hints`: each game counts the hints used, saved with the game (Room 6→7 auto-migration adds `hints` to `saved_game` and `completed_games`) and kept when a hint is undone. Hinted games still count as completed and keep streaks going, but best and average times come only from games solved without hints. The results screen says how many hints were used, and Statistics shows games solved without hints per difficulty. The instrumented database tests now pass on the `sudroid_pixel9` emulator (API 37), including #22's 5→6 upgrade.
+Every step below is merged, along with the unscheduled items and two follow-ups. The app targets Android 17 (API 37) since [#1](https://github.com/eckorog2005/sudroid/pull/1), and Room is at version 7.
+
+Notes that the code and AGENTS.md don't spell out:
+
+- Undo and redo history lives in memory in `GameViewModel`, so it is lost when the game screen closes.
+- [#22](https://github.com/eckorog2005/sudroid/pull/22) changed the number of puzzles, so since then each day's challenge maps to a different puzzle than before.
+- Hints explain naked singles, hidden singles and chains of locked candidates. Anything harder falls back to "from the solution". No generated puzzle needs that, but 28 of the original 450 do (1 easy, 10 medium, 17 hard).
+- The instrumented database tests pass on the `sudroid_pixel9` emulator (API 37). Haptics and the confetti haven't been checked on a physical phone.
 
 ## 1. Port the engine to Kotlin with tests: done
 
@@ -51,31 +45,44 @@ Existing bugs this step fixes:
 - [x] `Thread.sleep(100)` blocks the main thread in the View constructor
 - [x] Unclosed cursors, a database closed before its cursor is read, SQL built by string concatenation
 
-## 3. Core play features
+## 3. Core play features: done
 
-- [x] Pencil marks (notes), cleared automatically when a digit is placed in the same row, column or box
-- [x] Undo and redo (also makes Reset safe; it currently has no confirmation)
-- [x] Highlight the selected cell's row, column and box, and every cell with the same digit
-- [x] Number pad shows how many of each digit are left and dims finished digits
-- [x] Mistake modes: show immediately, only on request, or never; mark errors with a shape as well as color
+Merged 2026-10-13 to 2026-10-14.
 
-## 4. Platform and visuals
+- [x] Pencil marks (notes), cleared automatically when a digit is placed in the same row, column or box ([#7](https://github.com/eckorog2005/sudroid/pull/7); stored in `Board` so undo covers them)
+- [x] Undo and redo (also makes Reset safe; it currently has no confirmation) ([#5](https://github.com/eckorog2005/sudroid/pull/5))
+- [x] Highlight the selected cell's row, column and box, and every cell with the same digit ([#8](https://github.com/eckorog2005/sudroid/pull/8))
+- [x] Number pad shows how many of each digit are left and dims finished digits ([#9](https://github.com/eckorog2005/sudroid/pull/9))
+- [x] Mistake modes: show immediately, only on request, or never; mark errors with a shape as well as color ([#10](https://github.com/eckorog2005/sudroid/pull/10); a corner triangle, and a Check button on request)
 
-- [x] Material 3 with dynamic color and dark mode
-- [x] Layouts for tablets, foldables and landscape (the portrait lock is ignored on large screens since Android 16)
-- [x] Accessibility: a TalkBack description for each cell, and text that follows the system font size
-- [x] Adaptive launcher icon with a monochrome layer
-- [x] SplashScreen API
+## 4. Platform and visuals: done
 
-## 5. Retention features
+Merged 2026-10-14; [#12](https://github.com/eckorog2005/sudroid/pull/12) to [#15](https://github.com/eckorog2005/sudroid/pull/15) landed together in [#16](https://github.com/eckorog2005/sudroid/pull/16).
 
-- [x] Daily challenge chosen from the date, with streaks ([#19](https://github.com/eckorog2005/sudroid/pull/19))
+- [x] Material 3 with dynamic color and dark mode ([#11](https://github.com/eckorog2005/sudroid/pull/11))
+- [x] Layouts for tablets, foldables and landscape (the portrait lock is ignored on large screens since Android 16) ([#12](https://github.com/eckorog2005/sudroid/pull/12); the layout follows the window size, not the device)
+- [x] Accessibility: a TalkBack description for each cell, and text that follows the system font size ([#13](https://github.com/eckorog2005/sudroid/pull/13))
+- [x] Adaptive launcher icon with a monochrome layer ([#14](https://github.com/eckorog2005/sudroid/pull/14))
+- [x] SplashScreen API ([#15](https://github.com/eckorog2005/sudroid/pull/15))
+
+## 5. Retention features: done
+
+Merged 2026-10-24.
+
+- [x] Daily challenge chosen from the date, with streaks ([#19](https://github.com/eckorog2005/sudroid/pull/19); its own save slot, and streaks count the challenge's day)
 - [x] Stats: best and average time per difficulty, games completed, streaks ([#18](https://github.com/eckorog2005/sudroid/pull/18))
 - [x] Hints built on `Solver`: reveal a cell ([#20](https://github.com/eckorog2005/sudroid/pull/20)), then explain the technique (naked and hidden singles, [#21](https://github.com/eckorog2005/sudroid/pull/21))
 - [x] More puzzles: generate them with the uniqueness check and grade difficulty by technique, or bundle a larger set (generated and bundled; the original 450 keep their labels, [#22](https://github.com/eckorog2005/sudroid/pull/22))
 
-## Unscheduled
+## Unscheduled: done
 
-- [x] Pause screen that hides the board: a Pause button by the timer swaps the board for a Paused panel, stops the clock and disables the controls, and the pause survives process death
-- [x] Haptics on input, an animation when a row, column or box is completed, and a celebration on finishing: a tap on each pad press, a confirm and a fading flash over each house a move completes (`Board.isComplete`, `Cell.HOUSES`), and confetti on the results screen
-- [x] `.gitattributes` to keep the CRLF line endings in `data.txt` (and `gradlew.bat`), marked `-text` so no checkout converts them
+Merged 2026-10-24.
+
+- [x] Pause screen that hides the board ([#25](https://github.com/eckorog2005/sudroid/pull/25); stops the clock and disables the controls, and survives process death)
+- [x] Haptics on input, an animation when a row, column or box is completed, and a celebration on finishing ([#26](https://github.com/eckorog2005/sudroid/pull/26); a fading flash over each completed house, and confetti on the results screen)
+- [x] `.gitattributes` to keep the CRLF line endings in `data.txt` ([#24](https://github.com/eckorog2005/sudroid/pull/24); `gradlew.bat` too, both marked `-text`)
+
+## Follow-ups
+
+- [x] Hints explain locked candidates, chaining steps until one reveals a single ([#27](https://github.com/eckorog2005/sudroid/pull/27))
+- [x] Count hints: hinted games still count as completed and keep streaks, but only hint-free games set best and average times ([#28](https://github.com/eckorog2005/sudroid/pull/28))

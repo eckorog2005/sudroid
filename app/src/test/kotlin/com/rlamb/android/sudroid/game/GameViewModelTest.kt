@@ -92,6 +92,16 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `the state names the loaded puzzle's difficulty`() = runTest {
+        repository.saved = SavedGame(PUZZLE.copy(difficulty = Difficulty.MEDIUM), EMPTY_ENTRIES, elapsedSeconds = 0)
+
+        val state = GameViewModel(repository, GameRequest.Resume, saveScope, SavedStateHandle()).state.value
+
+        assertEquals(Difficulty.MEDIUM, state.difficulty)
+        assertNull(state.dailyDay)
+    }
+
+    @Test
     fun `resuming without a saved game starts a new easy game`() = runTest {
         val state = GameViewModel(repository, GameRequest.Resume, saveScope, SavedStateHandle()).state.value
 
@@ -540,6 +550,7 @@ class GameViewModelTest {
 
         assertEquals(listOf(TODAY), repository.requestedDailyDays)
         assertEquals(0, viewModel.state.value.elapsedSeconds)
+        assertEquals(TODAY, viewModel.state.value.dailyDay)
         val saved = assertNotNull(repository.savedDaily)
         assertEquals(DAILY_PUZZLE, saved.puzzle)
         assertEquals(TODAY, saved.dailyDay)

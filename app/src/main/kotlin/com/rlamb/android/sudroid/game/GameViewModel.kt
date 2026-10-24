@@ -40,6 +40,10 @@ import kotlin.time.Duration.Companion.seconds
 data class GameUiState(
     /** Null until the puzzle has loaded. */
     val board: Board? = null,
+    /** Null until the puzzle has loaded. */
+    val difficulty: Difficulty? = null,
+    /** The epoch day of the daily challenge being played, or null for a regular game. */
+    val dailyDay: Long? = null,
     val selected: Cell? = null,
     val elapsedSeconds: Int = 0,
     val canUndo: Boolean = false,
@@ -104,7 +108,15 @@ class GameViewModel(
             val board = Board.fromPuzzle(puzzle.digits).let {
                 if (saved != null) it.withEntries(saved.entries).withNotes(saved.notes) else it
             }
-            _state.update { it.copy(board = board, elapsedSeconds = saved?.elapsedSeconds ?: 0, hints = saved?.hints ?: 0) }
+            _state.update {
+                it.copy(
+                    board = board,
+                    difficulty = puzzle.difficulty,
+                    dailyDay = dailyDay,
+                    elapsedSeconds = saved?.elapsedSeconds ?: 0,
+                    hints = saved?.hints ?: 0,
+                )
+            }
             savedState[STARTED] = true
         }
         saveScope.launch {

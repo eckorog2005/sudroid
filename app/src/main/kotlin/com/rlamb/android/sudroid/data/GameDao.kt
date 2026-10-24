@@ -23,8 +23,10 @@ import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Embedded
 import androidx.room.Entity
+import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Upsert
 import com.rlamb.android.sudroid.game.Difficulty
 import kotlinx.coroutines.flow.Flow
@@ -44,6 +46,16 @@ data class SavedGameEntity(
     val entries: String,
     @ColumnInfo(name = "elapsed_seconds") val elapsedSeconds: Int,
     @ColumnInfo(defaultValue = "") val notes: String,
+)
+
+@Entity(tableName = "completed_games")
+data class CompletedGameEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "puzzle_id") val puzzleId: Int,
+    val difficulty: Difficulty,
+    @ColumnInfo(name = "elapsed_seconds") val elapsedSeconds: Int,
+    /** Epoch milliseconds. */
+    @ColumnInfo(name = "completed_at") val completedAt: Long,
 )
 
 data class SavedGameWithPuzzle(
@@ -72,4 +84,16 @@ interface GameDao {
 
     @Query("DELETE FROM saved_game")
     suspend fun deleteSavedGame()
+
+    @Insert
+    suspend fun insertCompletedGame(game: CompletedGameEntity)
+
+    @Transaction
+    suspend fun completeGame(game: CompletedGameEntity) {
+        insertCompletedGame(game)
+        deleteSavedGame()
+    }
+
+    @Query("SELECT * FROM completed_games")
+    fun completedGames(): Flow<List<CompletedGameEntity>>
 }

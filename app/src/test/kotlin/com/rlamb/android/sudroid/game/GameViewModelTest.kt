@@ -292,7 +292,7 @@ class GameViewModelTest {
     }
 
     @Test
-    fun `solving the puzzle stops the clock and deletes the saved game`() = runTest {
+    fun `solving the puzzle stops the clock and records the completion`() = runTest {
         val (viewModel, lastCell) = oneMoveFromSolved()
         val clock = launch { viewModel.runClock() }
 
@@ -304,6 +304,7 @@ class GameViewModelTest {
         assertEquals(10, viewModel.state.value.elapsedSeconds)
         assertFalse(clock.isActive)
         assertNull(repository.saved)
+        assertEquals(listOf(PUZZLE to 10), repository.completed)
     }
 
     @Test
@@ -318,6 +319,7 @@ class GameViewModelTest {
 
         assertTrue(viewModel.state.value.isSolved)
         assertNull(repository.saved)
+        assertEquals(1, repository.completed.size)
     }
 
     @Test
@@ -405,6 +407,7 @@ class GameViewModelTest {
 private class FakeGameRepository(private val puzzle: Puzzle) : GameRepository {
     var saved: SavedGame? = null
     val requestedDifficulties = mutableListOf<Difficulty>()
+    val completed = mutableListOf<Pair<Puzzle, Int>>()
 
     override suspend fun randomPuzzle(difficulty: Difficulty): Puzzle {
         requestedDifficulties += difficulty
@@ -420,6 +423,11 @@ private class FakeGameRepository(private val puzzle: Puzzle) : GameRepository {
     }
 
     override suspend fun deleteSavedGame() {
+        saved = null
+    }
+
+    override suspend fun completeGame(puzzle: Puzzle, elapsedSeconds: Int) {
+        completed += puzzle to elapsedSeconds
         saved = null
     }
 }

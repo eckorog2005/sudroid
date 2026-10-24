@@ -24,9 +24,19 @@ import com.rlamb.android.sudroid.game.Difficulty
 import com.rlamb.android.sudroid.game.GameRepository
 import com.rlamb.android.sudroid.game.Puzzle
 import com.rlamb.android.sudroid.game.SavedGame
+import com.rlamb.android.sudroid.stats.Completion
+import com.rlamb.android.sudroid.stats.Stats
+import com.rlamb.android.sudroid.stats.StatsRepository
+import com.rlamb.android.sudroid.stats.statsOf
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import java.util.TimeZone
 
-class RoomGameRepository(private val dao: GameDao) : GameRepository {
+class RoomGameRepository(
+    private val dao: GameDao,
+    private val now: () -> Long = System::currentTimeMillis,
+    private val timeZone: () -> TimeZone = TimeZone::getDefault,
+) : GameRepository, StatsRepository {
     override suspend fun randomPuzzle(difficulty: Difficulty): Puzzle =
         checkNotNull(dao.randomPuzzle(difficulty)) { "No $difficulty puzzles in the database" }.toPuzzle()
 
@@ -46,9 +56,27 @@ class RoomGameRepository(private val dao: GameDao) : GameRepository {
 
     override suspend fun deleteSavedGame() = dao.deleteSavedGame()
 
+    override suspend fun completeGame(puzzle: Puzzle, elapsedSeconds: Int) = dao.completeGame(
+        CompletedGameEntity(
+            puzzleId = puzzle.id,
+            difficulty = puzzle.difficulty,
+            elapsedSeconds = elapsedSeconds,
+            completedAt = now(),
+        ),
+    )
+
+    // Days come from the time zone in effect now, so a streak follows the player when they travel.
+    override fun stats(): Flow<Stats> = dao.completedGames().map { games ->
+        statsOf(games.map { Completion(it.difficulty, it.elapsedSeconds, epochDay(it.completedAt)) }, epochDay(now()))
+    }
+
+    private fun epochDay(millis: Long): Long = (millis + timeZone().getOffset(millis)).floorDiv(MILLIS_PER_DAY)
+
     private fun PuzzleEntity.toPuzzle() = Puzzle(id, difficulty, digits)
 
     companion object {
+        private const val MILLIS_PER_DAY = 24 * 60 * 60 * 1000L
+
         @Volatile
         private var instance: RoomGameRepository? = null
 

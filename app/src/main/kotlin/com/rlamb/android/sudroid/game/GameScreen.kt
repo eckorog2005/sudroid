@@ -41,6 +41,8 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -73,6 +75,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.rlamb.android.sudroid.R
 import com.rlamb.android.sudroid.engine.Board
 import com.rlamb.android.sudroid.engine.Cell
+import com.rlamb.android.sudroid.engine.Hint
 import com.rlamb.android.sudroid.ui.SudroidTheme
 
 @Composable
@@ -112,7 +115,13 @@ private fun GameContent(
     onCheck: () -> Unit,
     onHint: () -> Unit,
 ) {
-    Scaffold { insets ->
+    val snackbarHostState = remember { SnackbarHostState() }
+    val resources = LocalResources.current
+    // Restarting on the next move cancels showSnackbar, which dismisses the explanation.
+    LaunchedEffect(state.hint) {
+        state.hint?.let { snackbarHostState.showSnackbar(explain(resources, it)) }
+    }
+    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { insets ->
         BoxWithConstraints(
             Modifier.fillMaxSize().padding(insets).padding(16.dp),
             contentAlignment = Alignment.Center,
@@ -180,6 +189,26 @@ private fun describe(resources: Resources, board: Board, cell: Cell, showMistake
         else -> resources.getString(R.string.cell_entry, row, col, digit)
     }
     return if (showMistakes && board.hasConflict(cell)) resources.getString(R.string.cell_conflict, description) else description
+}
+
+private fun explain(resources: Resources, hint: Hint): String {
+    val row = hint.cell.row + 1
+    val col = hint.cell.col + 1
+    return when (val reason = hint.reason) {
+        is Hint.Reason.Mistake -> resources.getString(R.string.hint_mistake, reason.wrongDigit, row, col, hint.digit)
+        Hint.Reason.NakedSingle -> resources.getString(R.string.hint_naked_single, hint.digit, row, col)
+        is Hint.Reason.HiddenSingle -> resources.getString(
+            when (reason.house) {
+                Hint.House.ROW -> R.string.hint_hidden_single_row
+                Hint.House.COLUMN -> R.string.hint_hidden_single_column
+                Hint.House.BOX -> R.string.hint_hidden_single_box
+            },
+            hint.digit,
+            row,
+            col,
+        )
+        Hint.Reason.FromSolution -> resources.getString(R.string.hint_from_solution, hint.digit, row, col)
+    }
 }
 
 @Composable

@@ -24,6 +24,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rlamb.android.sudroid.engine.Board
 import com.rlamb.android.sudroid.engine.Cell
+import com.rlamb.android.sudroid.engine.Hint
 import com.rlamb.android.sudroid.engine.Solver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
@@ -48,6 +49,8 @@ data class GameUiState(
     val mistakeMode: MistakeMode = MistakeMode.ALWAYS,
     /** Set by a check request under [MistakeMode.ON_REQUEST]; the next move, undo or redo clears it. */
     val checking: Boolean = false,
+    /** The hint just given, so the screen can explain it; the next move, undo or redo clears it. */
+    val hint: Hint? = null,
 ) {
     val isSolved: Boolean = board?.isSolved == true
     val showMistakes: Boolean = mistakeMode == MistakeMode.ALWAYS || (mistakeMode == MistakeMode.ON_REQUEST && checking)
@@ -130,7 +133,7 @@ class GameViewModel(
 
     fun erase() = moveOnSelected { board, cell -> board.clear(cell) }
 
-    /** Fills or corrects one cell with its solution digit and selects it; undo takes it back. */
+    /** Fills or corrects one cell with its solution digit, selects it and explains it; undo takes it back. */
     fun hint() {
         val current = state.value
         val board = current.board ?: return
@@ -138,6 +141,7 @@ class GameViewModel(
         val hint = Solver.hint(board, current.selected) ?: return
         select(hint.cell)
         move { it.place(hint.cell, hint.digit) }
+        _state.update { it.copy(hint = hint) }
     }
 
     fun reset() = move { it.reset() }
@@ -184,7 +188,7 @@ class GameViewModel(
 
     private fun show(board: Board) {
         _state.update {
-            it.copy(board = board, canUndo = undoStack.isNotEmpty(), canRedo = redoStack.isNotEmpty(), checking = false)
+            it.copy(board = board, canUndo = undoStack.isNotEmpty(), canRedo = redoStack.isNotEmpty(), checking = false, hint = null)
         }
         val current = _state.value
         if (current.isSolved) pendingWrites.trySend(PendingWrite.Complete(puzzle, current.elapsedSeconds, dailyDay)) else save()

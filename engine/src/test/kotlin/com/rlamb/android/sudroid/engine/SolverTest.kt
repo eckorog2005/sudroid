@@ -52,29 +52,49 @@ class SolverTest {
     }
 
     @Test
-    fun `a hint reveals the selected cell when it is empty or wrong`() {
+    fun `a hint on a wrong entry corrects it and names the wrong digit`() {
         val board = Board.fromPuzzle(PUZZLE).place(Cell(0, 2), 1)
 
-        assertEquals(Hint(Cell(0, 3), 6), Solver.hint(board, preferred = Cell(0, 3)))
-        assertEquals(Hint(Cell(0, 2), 4), Solver.hint(board, preferred = Cell(0, 2)))
+        assertEquals(Hint(Cell(0, 2), 4, Hint.Reason.Mistake(1)), Solver.hint(board, preferred = Cell(0, 2)))
+    }
+
+    @Test
+    fun `a hint explains the selected cell by the technique that finds it`() {
+        val board = Board.fromPuzzle(PUZZLE)
+        fun hintAt(cell: Cell) = Solver.hint(board, preferred = cell)
+
+        assertEquals(Hint(Cell(4, 4), 5, Hint.Reason.NakedSingle), hintAt(Cell(4, 4)))
+        assertEquals(Hint(Cell(2, 6), 5, Hint.Reason.HiddenSingle(Hint.House.ROW)), hintAt(Cell(2, 6)))
+        assertEquals(Hint(Cell(2, 4), 4, Hint.Reason.HiddenSingle(Hint.House.COLUMN)), hintAt(Cell(2, 4)))
+        assertEquals(Hint(Cell(8, 6), 1, Hint.Reason.HiddenSingle(Hint.House.BOX)), hintAt(Cell(8, 6)))
+        assertEquals(Hint(Cell(0, 3), 6, Hint.Reason.FromSolution), hintAt(Cell(0, 3)))
     }
 
     @Test
     fun `a hint corrects a wrong entry before filling an empty cell`() {
         val board = Board.fromPuzzle(PUZZLE).place(Cell(0, 2), 4).place(Cell(8, 0), 1)
 
-        assertEquals(Hint(Cell(8, 0), 3), Solver.hint(board, preferred = Cell(0, 2)))
+        assertEquals(Hint(Cell(8, 0), 3, Hint.Reason.Mistake(1)), Solver.hint(board, preferred = Cell(0, 2)))
     }
 
     @Test
-    fun `without a selection a hint fills the most constrained empty cell`() {
-        val board = Board.fromPuzzle(PUZZLE)
-        val hint = assertNotNull(Solver.hint(board))
+    fun `without a selection a hint prefers a naked single`() {
+        assertEquals(Hint(Cell(4, 4), 5, Hint.Reason.NakedSingle), Solver.hint(Board.fromPuzzle(PUZZLE)))
+    }
 
-        assertEquals(0, board.digitAt(hint.cell))
-        assertEquals(SOLUTION[hint.cell.row * Board.SIZE + hint.cell.col] - '0', hint.digit)
-        val ruledOut = { cell: Cell -> cell.peers.map(board::digitAt).filter { it != 0 }.toSet().size }
-        assertEquals(Cell.ALL.filter { board.digitAt(it) == 0 }.maxOf(ruledOut), ruledOut(hint.cell))
+    @Test
+    fun `without a selection a hint takes a hidden single when no naked single is left`() {
+        val board = Board.fromPuzzle("314080050750310086008070004000102000031060590000508000100040600260051049080020175")
+
+        assertEquals(Hint(Cell(1, 5), 4, Hint.Reason.HiddenSingle(Hint.House.ROW)), Solver.hint(board))
+    }
+
+    @Test
+    fun `a hint falls back to the solution when no single technique applies`() {
+        val hint = assertNotNull(Solver.hint(empty))
+
+        assertEquals(Cell(0, 0), hint.cell)
+        assertEquals(Hint.Reason.FromSolution, hint.reason)
     }
 
     @Test

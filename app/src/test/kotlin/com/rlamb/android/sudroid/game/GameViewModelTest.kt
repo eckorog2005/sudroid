@@ -21,6 +21,7 @@ package com.rlamb.android.sudroid.game
 
 import com.rlamb.android.sudroid.engine.Board
 import com.rlamb.android.sudroid.engine.Cell
+import com.rlamb.android.sudroid.engine.Hint
 import com.rlamb.android.sudroid.engine.Solver
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelProvider
@@ -292,8 +293,25 @@ class GameViewModelTest {
         assertEquals(Cell(8, 8), viewModel.state.value.selected)
         assertEquals(SOLUTION.digitAt(Cell(8, 8)), viewModel.state.value.board?.digitAt(Cell(8, 8)))
 
+        assertEquals(Hint.Reason.Mistake(wrong), viewModel.state.value.hint?.reason)
+
         viewModel.undo()
         assertEquals(wrong, viewModel.state.value.board?.digitAt(Cell(8, 8)))
+        assertNull(viewModel.state.value.hint)
+    }
+
+    @Test
+    fun `the hint stays for the screen to explain until the next move`() = runTest {
+        val viewModel = newGame()
+        viewModel.select(Cell(0, 0))
+
+        viewModel.hint()
+        assertEquals(Cell(0, 0), viewModel.state.value.hint?.cell)
+        viewModel.select(Cell(1, 1))
+        assertNotNull(viewModel.state.value.hint)
+
+        viewModel.enter(1)
+        assertNull(viewModel.state.value.hint)
     }
 
     @Test

@@ -2,7 +2,7 @@
 
 The plan for turning the 2012 app into a modern Android game, step by step. Tick items as their PRs merge and link the PR.
 
-## Where we left off (2026-10-12)
+## Where we left off (2026-10-24)
 
 - Steps 1 and 2 are merged. Step 3 is in progress, one branch per feature:
   1. Done on `feat/core-play-features`: undo and redo, held in memory by `GameViewModel` (the history is lost when the game screen closes).
@@ -11,7 +11,8 @@ The plan for turning the 2012 app into a modern Android game, step by step. Tick
   4. Done and merged in [#9](https://github.com/eckorog2005/sudroid/pull/9): each pad button shows how many of its digit are left (`Board.remaining`) and is disabled at 0.
   5. Done and merged in [#10](https://github.com/eckorog2005/sudroid/pull/10): a global setting on the menu (always, on request, never), kept in `SharedPreferences` through `SettingsRepository`. Conflicts get a corner triangle as well as red, and on request a Check button shows them until the next move. Step 3 is complete.
   6. Step 4 in progress. Done in [#11](https://github.com/eckorog2005/sudroid/pull/11): dynamic color on Android 12+ with the static scheme as fallback, light and dark following the system, and a day/night window theme so the launch frame matches. Then done on `feat/large-screens`: the board and pad are capped in width and centered, so tablets, foldables and resized windows no longer stretch them; the layout follows the window size, not the device. Then done on `feat/accessibility`: each cell is a tap target with a spoken description (position, digit or notes, given, conflict) and a selected state, the pad buttons read as "digit, count left", pad labels shrink to fit instead of clipping at large font sizes, and the mistake setting is a radio list that scales with the font. Then done on `feat/adaptive-icon`: a drawn vector icon with a monochrome layer, replacing the 2010 raster icon. Then done on `feat/splash-screen`: the SplashScreen API through `core-splashscreen`, showing the icon's grid on the icon's indigo and handing over to `Theme.Sudroid`. Step 4 is complete.
-  7. Step 5 in progress. Done on `feat/stats`: each solved game is recorded in a new `completed_games` table (Room 3→4 auto-migration), and a Statistics screen from the menu shows games completed, the current and longest streak of days with a finished game, and the count, best and average time per difficulty. The daily challenge can build its streaks on the same table.
+  7. Step 5 in progress. Done and merged in [#18](https://github.com/eckorog2005/sudroid/pull/18): each solved game is recorded in a new `completed_games` table (Room 3→4 auto-migration), and a Statistics screen from the menu shows games completed, the current and longest streak of days with a finished game, and the count, best and average time per difficulty. The daily challenge can build its streaks on the same table.
+  8. Done on `feat/daily-challenge`: a Daily Challenge button on the menu opens the same puzzle for everyone on a given day, stepping through all 450 puzzles by a prime stride before any repeats. It saves in its own `saved_game` slot, so it never overwrites the regular game, and keeps its day across process death, so a challenge started before midnight resumes as the same one. Solving it records the challenge's day in `completed_games.daily_day` (Room 4→5 auto-migration); the menu shows "Solved today" and the daily streak, and the Statistics screen shows the current and longest daily streak.
 
 ## 1. Port the engine to Kotlin with tests: done
 
@@ -63,7 +64,7 @@ Existing bugs this step fixes:
 
 ## 5. Retention features
 
-- [ ] Daily challenge chosen from the date, with streaks
+- [x] Daily challenge chosen from the date, with streaks
 - [x] Stats: best and average time per difficulty, games completed, streaks
 - [ ] Hints built on `Solver`: reveal a cell first, explain the technique later
 - [ ] More puzzles: generate them with the uniqueness check and grade difficulty by technique, or bundle a larger set

@@ -5,6 +5,12 @@
     <string name="medium">Medium</string>
     <string name="hard">Hard</string>
     <string name="resume">Resume Game</string>
+    <string name="daily">Daily Challenge</string>
+    <string name="daily_solved">Solved today</string>
+    <plurals name="daily_streak">
+        <item quantity="one">%d-day streak</item>
+        <item quantity="other">%d-day streak</item>
+    </plurals>
     <string name="erase">Erase</string>
     <string name="reset">Reset</string>
     <string name="undo">Undo</string>

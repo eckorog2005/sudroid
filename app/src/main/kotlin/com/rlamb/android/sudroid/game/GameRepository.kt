@@ -27,8 +27,17 @@ enum class Difficulty { EASY, MEDIUM, HARD }
 /** [digits] is 81 digits in row-major order, with `0` for an empty cell. */
 data class Puzzle(val id: Int, val difficulty: Difficulty, val digits: String)
 
-/** [entries] and [notes] use the formats of `Board.entriesString()` and `Board.notesString()`. */
-data class SavedGame(val puzzle: Puzzle, val entries: String, val elapsedSeconds: Int, val notes: String = "")
+/**
+ * [entries] and [notes] use the formats of `Board.entriesString()` and `Board.notesString()`.
+ * [dailyDay] is the epoch day of the daily challenge this game belongs to, or null for a regular game.
+ */
+data class SavedGame(
+    val puzzle: Puzzle,
+    val entries: String,
+    val elapsedSeconds: Int,
+    val notes: String = "",
+    val dailyDay: Long? = null,
+)
 
 @Serializable
 sealed interface GameRequest {
@@ -37,15 +46,39 @@ sealed interface GameRequest {
 
     @Serializable
     data object Resume : GameRequest
+
+    /** Today's challenge, resumed if it was already started. */
+    @Serializable
+    data object Daily : GameRequest
 }
 
 interface GameRepository {
     suspend fun randomPuzzle(difficulty: Difficulty): Puzzle
+
+    /** The same puzzle on every device for a given [epochDay]. */
+    suspend fun dailyPuzzle(epochDay: Long): Puzzle
+
+    /** The local calendar day, counted from 1970-01-01. */
+    fun today(): Long
+
+    /** The regular game in progress. The daily challenge is saved separately, so neither overwrites the other. */
     suspend fun savedGame(): SavedGame?
+    suspend fun savedDailyGame(epochDay: Long): SavedGame?
     fun hasSavedGame(): Flow<Boolean>
+
+    /** Saves to the daily challenge's slot when [SavedGame.dailyDay] is set, and to the regular one otherwise. */
     suspend fun save(game: SavedGame)
     suspend fun deleteSavedGame()
 
-    /** Records a solved game for the stats and deletes the saved game, together. */
-    suspend fun completeGame(puzzle: Puzzle, elapsedSeconds: Int)
+    /** Records a solved game for the stats and deletes its save, together. */
+    suspend fun completeGame(puzzle: Puzzle, elapsedSeconds: Int, dailyDay: Long? = null)
 }
+
+/**
+ * Steps through the puzzles by a prime stride, so consecutive days get unrelated puzzles and every
+ * puzzle comes up once before any repeats, as long as [puzzleCount] is not a multiple of the stride.
+ */
+fun dailyPuzzleIndex(epochDay: Long, puzzleCount: Int): Int =
+    Math.floorMod(epochDay * DAILY_STRIDE, puzzleCount.toLong()).toInt()
+
+private const val DAILY_STRIDE = 7919L

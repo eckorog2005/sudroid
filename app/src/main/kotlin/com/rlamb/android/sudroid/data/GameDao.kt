@@ -38,14 +38,15 @@ data class PuzzleEntity(
     val digits: String,
 )
 
-/** Holds at most one row: the game in progress. */
+/** Holds at most one row per slot: the regular game in progress and the daily challenge in progress. */
 @Entity(tableName = "saved_game")
 data class SavedGameEntity(
-    @PrimaryKey val slot: Int = 0,
+    @PrimaryKey val slot: Int,
     @ColumnInfo(name = "puzzle_id") val puzzleId: Int,
     val entries: String,
     @ColumnInfo(name = "elapsed_seconds") val elapsedSeconds: Int,
     @ColumnInfo(defaultValue = "") val notes: String,
+    @ColumnInfo(name = "daily_day") val dailyDay: Long? = null,
 )
 
 @Entity(tableName = "completed_games")
@@ -56,6 +57,7 @@ data class CompletedGameEntity(
     @ColumnInfo(name = "elapsed_seconds") val elapsedSeconds: Int,
     /** Epoch milliseconds. */
     @ColumnInfo(name = "completed_at") val completedAt: Long,
+    @ColumnInfo(name = "daily_day") val dailyDay: Long? = null,
 )
 
 data class SavedGameWithPuzzle(
@@ -63,6 +65,7 @@ data class SavedGameWithPuzzle(
     val entries: String,
     @ColumnInfo(name = "elapsed_seconds") val elapsedSeconds: Int,
     val notes: String,
+    @ColumnInfo(name = "daily_day") val dailyDay: Long?,
 )
 
 @Dao
@@ -70,28 +73,34 @@ interface GameDao {
     @Query("SELECT * FROM puzzles WHERE difficulty = :difficulty ORDER BY random() LIMIT 1")
     suspend fun randomPuzzle(difficulty: Difficulty): PuzzleEntity?
 
-    @Query(
-        "SELECT p.*, s.entries, s.elapsed_seconds, s.notes FROM saved_game s " +
-            "JOIN puzzles p ON p.id = s.puzzle_id LIMIT 1",
-    )
-    suspend fun savedGame(): SavedGameWithPuzzle?
+    @Query("SELECT count(*) FROM puzzles")
+    suspend fun puzzleCount(): Int
 
-    @Query("SELECT EXISTS(SELECT * FROM saved_game)")
-    fun hasSavedGame(): Flow<Boolean>
+    @Query("SELECT * FROM puzzles ORDER BY id LIMIT 1 OFFSET :index")
+    suspend fun puzzleAt(index: Int): PuzzleEntity?
+
+    @Query(
+        "SELECT p.*, s.entries, s.elapsed_seconds, s.notes, s.daily_day FROM saved_game s " +
+            "JOIN puzzles p ON p.id = s.puzzle_id WHERE s.slot = :slot",
+    )
+    suspend fun savedGame(slot: Int): SavedGameWithPuzzle?
+
+    @Query("SELECT EXISTS(SELECT * FROM saved_game WHERE slot = :slot)")
+    fun hasSavedGame(slot: Int): Flow<Boolean>
 
     @Upsert
     suspend fun save(game: SavedGameEntity)
 
-    @Query("DELETE FROM saved_game")
-    suspend fun deleteSavedGame()
+    @Query("DELETE FROM saved_game WHERE slot = :slot")
+    suspend fun deleteSavedGame(slot: Int)
 
     @Insert
     suspend fun insertCompletedGame(game: CompletedGameEntity)
 
     @Transaction
-    suspend fun completeGame(game: CompletedGameEntity) {
+    suspend fun completeGame(game: CompletedGameEntity, slot: Int) {
         insertCompletedGame(game)
-        deleteSavedGame()
+        deleteSavedGame(slot)
     }
 
     @Query("SELECT * FROM completed_games")

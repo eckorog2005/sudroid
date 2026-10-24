@@ -30,8 +30,12 @@ import com.rlamb.android.sudroid.game.parseElapsed
 
 @Database(
     entities = [PuzzleEntity::class, SavedGameEntity::class, CompletedGameEntity::class],
-    version = 4,
-    autoMigrations = [AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4)],
+    version = 5,
+    autoMigrations = [
+        AutoMigration(from = 2, to = 3),
+        AutoMigration(from = 3, to = 4),
+        AutoMigration(from = 4, to = 5),
+    ],
 )
 abstract class SudroidDatabase : RoomDatabase() {
     abstract fun gameDao(): GameDao

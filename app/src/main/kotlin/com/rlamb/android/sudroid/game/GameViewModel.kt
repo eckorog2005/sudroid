@@ -24,6 +24,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rlamb.android.sudroid.engine.Board
 import com.rlamb.android.sudroid.engine.Cell
+import com.rlamb.android.sudroid.engine.Solver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -128,6 +129,16 @@ class GameViewModel(
     }
 
     fun erase() = moveOnSelected { board, cell -> board.clear(cell) }
+
+    /** Fills or corrects one cell with its solution digit and selects it; undo takes it back. */
+    fun hint() {
+        val current = state.value
+        val board = current.board ?: return
+        if (current.isSolved) return
+        val hint = Solver.hint(board, current.selected) ?: return
+        select(hint.cell)
+        move { it.place(hint.cell, hint.digit) }
+    }
 
     fun reset() = move { it.reset() }
 

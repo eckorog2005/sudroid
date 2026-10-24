@@ -267,6 +267,47 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `a hint fills the selected cell with its solution digit, selects it and saves`() = runTest {
+        val viewModel = newGame()
+        viewModel.select(Cell(0, 0))
+
+        viewModel.hint()
+
+        val state = viewModel.state.value
+        assertEquals(SOLUTION.digitAt(Cell(0, 0)), state.board?.digitAt(Cell(0, 0)))
+        assertEquals(Cell(0, 0), state.selected)
+        assertEquals(state.board?.entriesString(), repository.saved?.entries)
+    }
+
+    @Test
+    fun `a hint corrects a wrong entry and can be undone`() = runTest {
+        val viewModel = newGame()
+        val wrong = (1..9).first { it != SOLUTION.digitAt(Cell(8, 8)) }
+        viewModel.select(Cell(8, 8))
+        viewModel.enter(wrong)
+        viewModel.select(Cell(0, 0))
+        viewModel.enter(SOLUTION.digitAt(Cell(0, 0)))
+
+        viewModel.hint()
+        assertEquals(Cell(8, 8), viewModel.state.value.selected)
+        assertEquals(SOLUTION.digitAt(Cell(8, 8)), viewModel.state.value.board?.digitAt(Cell(8, 8)))
+
+        viewModel.undo()
+        assertEquals(wrong, viewModel.state.value.board?.digitAt(Cell(8, 8)))
+    }
+
+    @Test
+    fun `a hint on the last cell solves the puzzle`() = runTest {
+        val (viewModel, lastCell) = oneMoveFromSolved()
+
+        viewModel.hint()
+
+        assertTrue(viewModel.state.value.isSolved)
+        assertEquals(lastCell, viewModel.state.value.selected)
+        assertEquals(listOf(Completed(PUZZLE, 10)), repository.completed)
+    }
+
+    @Test
     fun `the clock counts seconds while it runs and saves the time when it stops`() = runTest {
         val viewModel = newGame()
 

@@ -93,9 +93,9 @@ Merged 2026-10-24.
 ## 6. Publish on Google Play
 
 - [x] Store icon and feature graphic ([#33](https://github.com/eckorog2005/sudroid/pull/33))
-- [x] Release signing from properties outside the repo, version 2.0 (`versionCode` 5)
-- [x] Release build played through on the emulator: new game, hints, autosave and resume, results, statistics, settings, rotation
-- [x] Store text, changelog, five phone screenshots and a privacy policy (`PRIVACY.md`)
+- [x] Release signing from properties outside the repo, version 2.0 (`versionCode` 5) ([#35](https://github.com/eckorog2005/sudroid/pull/35))
+- [x] Release build played through on the emulator: new game, hints, autosave and resume, results, statistics, settings, rotation ([#35](https://github.com/eckorog2005/sudroid/pull/35))
+- [x] Store text, changelog, five phone screenshots and a privacy policy (`PRIVACY.md`) ([#35](https://github.com/eckorog2005/sudroid/pull/35))
 - [ ] Create the upload keystore and confirm whether the 2010 listing for `com.rlamb.android.sudroid` still exists
 - [ ] Play Console: create the app, Play App Signing, Data safety, content rating, target audience
 - [ ] Closed test with 12 testers for 14 days (personal accounts only)

@@ -1,0 +1,27 @@
+Sudroid is a clean, classic Sudoku game. No ads, no accounts, no tracking: just puzzles.
+
+DAILY CHALLENGE
+A new puzzle every day, the same for everyone. Solve it daily to build a streak.
+
+900 PUZZLES, THREE LEVELS
+Easy, Medium and Hard. Every puzzle has exactly one solution, and the newer puzzles are graded by the techniques you need to solve them.
+
+HINTS THAT TEACH
+Stuck? A hint fills in the next cell and tells you why: a naked single, a hidden single, or locked candidates.
+
+PLAY YOUR WAY
+• Pencil marks that clear themselves when you place a digit
+• Unlimited undo and redo
+• Highlights for the selected row, column, box and matching digits
+• A number pad that counts how many of each digit are left
+• Show mistakes immediately, only when you check, or never
+• Pause hides the board and stops the clock
+
+TRACK YOUR PROGRESS
+Games completed, best and average times for each difficulty, and day streaks.
+
+MADE FOR ANY SCREEN
+Material You colours, dark mode, landscape, tablet and foldable layouts, TalkBack support, and text that follows your font size.
+
+FREE AND OPEN SOURCE
+Sudroid is licensed under the GPL-3. The source is on GitHub: https://github.com/eckorog2005/sudroid

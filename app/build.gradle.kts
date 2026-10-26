@@ -14,13 +14,27 @@ android {
         applicationId = "com.rlamb.android.sudroid"
         minSdk = 24
         targetSdk = 37
-        versionCode = 4
-        versionName = "1.2"
+        versionCode = 5
+        versionName = "2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // The upload key lives outside the repo; set these in ~/.gradle/gradle.properties.
+    val storeFile = providers.gradleProperty("SUDROID_STORE_FILE").orNull
+    if (storeFile != null) {
+        signingConfigs {
+            create("release") {
+                this.storeFile = file(storeFile)
+                storePassword = providers.gradleProperty("SUDROID_STORE_PASSWORD").get()
+                keyAlias = providers.gradleProperty("SUDROID_KEY_ALIAS").getOrElse("upload")
+                keyPassword = providers.gradleProperty("SUDROID_KEY_PASSWORD").get()
+            }
+        }
     }
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))

@@ -1,0 +1,6 @@
+Sudroid 2.0 is a full rebuild for modern Android:
+• Daily challenge with streaks
+• 450 new puzzles, graded by solving technique
+• Pencil marks, undo and redo
+• Hints that explain the next step
+• Statistics, dark mode, tablet and landscape layouts

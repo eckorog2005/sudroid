@@ -10,6 +10,7 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
 - A single test: `./gradlew :engine:test --tests 'com.rlamb.android.sudroid.engine.BoardTest.reset*'`. Test names contain spaces, so match them with a wildcard.
 - `./gradlew assembleDebug assembleRelease lint` builds both variants and lints. Only the release build runs R8 minification.
 - `./gradlew installDebug` installs on a connected device or emulator.
+- `./gradlew :app:bundleRelease` builds the Play bundle. It is signed only when `SUDROID_STORE_FILE`, `SUDROID_STORE_PASSWORD` and `SUDROID_KEY_PASSWORD` (and optionally `SUDROID_KEY_ALIAS`, default `upload`) are set in `~/.gradle/gradle.properties`; without them release builds are unsigned. Never commit the keystore or its passwords. Increase `versionCode` for every upload.
 - `./gradlew :engine:generatePuzzles -Pcount=150` appends that many new puzzles per difficulty to `app/src/main/assets/puzzles.txt`. It runs from the engine's `tools` source set, which the app doesn't include.
 - `./gradlew :app:testDebugUnitTest` runs the `:app` JVM unit tests, such as `GameViewModelTest`.
 - `./gradlew :app:connectedDebugAndroidTest` runs the instrumented tests, such as `SudroidDatabaseTest`, on a connected device or emulator.
@@ -29,6 +30,11 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
   - Storage goes through the `GameRepository` and `StatsRepository` interfaces, implemented by `data.RoomGameRepository` on the Room `SudroidDatabase`. Saves run in a process-wide scope passed to `GameViewModel`, so the last save or delete lands after the screen closes.
   - The back stack survives process death, so a restored `Game(New(...))` key would start over. `GameViewModel` marks the game as started in its `SavedStateHandle` and resumes the autosave instead.
   - The daily challenge's puzzle comes from the day (`dailyPuzzleIndex`). It saves in its own `saved_game` slot (1; the regular game is slot 0) tagged with its day, and `GameViewModel` keeps that day in its `SavedStateHandle`, so a challenge started before midnight resumes as the same one. Daily streaks count `completed_games.daily_day`, the challenge's day, not the day it was finished. Hints are counted per game (undo doesn't refund one); hinted games count as completed and keep streaks, but best and average times come only from games with `hints = 0`.
+
+## Store listing
+
+- Play Store listing text and images live in `fastlane/metadata/android/en-US/`: `title.txt`, `short_description.txt` (80 characters at most), `full_description.txt`, `changelogs/<versionCode>.txt` (500 at most), `images/icon.png`, `images/featureGraphic.png` and `images/phoneScreenshots/`. Screenshots must be no more than twice as long as they are wide.
+- `PRIVACY.md` is the privacy policy the Play listing links to. Update it if the app ever gains a permission, network access or analytics.
 
 ## Puzzle data and saves
 

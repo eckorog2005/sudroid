@@ -89,3 +89,14 @@ Merged 2026-10-24.
 - [x] Game screen polish: a top bar with Back, the difficulty or daily date, and the timer; icons on the action buttons; Reset asks first; givens are never marked as mistakes; the menu's mistake options are centered ([#30](https://github.com/eckorog2005/sudroid/pull/30))
 - [x] Number pad: notes mode tints the digits and draws them small, every pad button in a row is the same height, and pencil marks on the board are larger ([#31](https://github.com/eckorog2005/sudroid/pull/31))
 - [x] Menu: Resume shows the saved game's difficulty and time, and hides when there's none; the mistake setting moves to a Settings screen behind a gear icon ([#32](https://github.com/eckorog2005/sudroid/pull/32))
+
+## 6. Publish on Google Play
+
+- [x] Store icon and feature graphic ([#33](https://github.com/eckorog2005/sudroid/pull/33))
+- [x] Release signing from properties outside the repo, version 2.0 (`versionCode` 5)
+- [x] Release build played through on the emulator: new game, hints, autosave and resume, results, statistics, settings, rotation
+- [x] Store text, changelog, five phone screenshots and a privacy policy (`PRIVACY.md`)
+- [ ] Create the upload keystore and confirm whether the 2010 listing for `com.rlamb.android.sudroid` still exists
+- [ ] Play Console: create the app, Play App Signing, Data safety, content rating, target audience
+- [ ] Closed test with 12 testers for 14 days (personal accounts only)
+- [ ] Production release

@@ -14,6 +14,7 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
 - `./gradlew :app:testDebugUnitTest` runs the `:app` JVM unit tests, such as `GameViewModelTest`.
 - `./gradlew :app:connectedDebugAndroidTest` runs the instrumented tests, such as `SudroidDatabaseTest`, on a connected device or emulator.
 - Building needs JDK 17 or newer.
+- CI (`.github/workflows/ci.yml`) runs on every pull request and push to `main`: the engine and app unit tests, both builds and lint on JDK 17, then the instrumented tests on an API 35 emulator. Run the same Gradle tasks locally before pushing.
 
 ## Modules
 

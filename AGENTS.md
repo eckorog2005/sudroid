@@ -33,7 +33,7 @@ The roadmap and its status are in `PROGRESS.md`. Read it before starting moderni
 
 ## Store listing
 
-- Play and F-Droid listing text and images live in `fastlane/metadata/android/en-US/`: `title.txt`, `short_description.txt` (80 characters at most), `full_description.txt`, `changelogs/<versionCode>.txt` (500 at most), `images/icon.png`, `images/featureGraphic.png` and `images/phoneScreenshots/`. Screenshots must be no more than twice as long as they are wide.
+- Play Store listing text and images live in `fastlane/metadata/android/en-US/`: `title.txt`, `short_description.txt` (80 characters at most), `full_description.txt`, `changelogs/<versionCode>.txt` (500 at most), `images/icon.png`, `images/featureGraphic.png` and `images/phoneScreenshots/`. Screenshots must be no more than twice as long as they are wide.
 - `PRIVACY.md` is the privacy policy the Play listing links to. Update it if the app ever gains a permission, network access or analytics.
 
 ## Puzzle data and saves

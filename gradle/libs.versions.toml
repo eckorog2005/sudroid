@@ -9,7 +9,7 @@ coreSplashscreen = "1.2.0"
 lifecycle = "2.11.0"
 navigation3 = "1.2.0"
 room = "2.8.5"
-kotlinxSerialization = "1.11.0"
+kotlinxSerialization = "1.12.0"
 kotlinxCoroutines = "1.11.0"
 androidxTestRunner = "1.7.0"
 androidxTestJunit = "1.3.0"
@@ -17,6 +17,7 @@ bouncycastle = "1.86"
 jose4j = "0.9.7"
 jdom2 = "2.0.6.1"
 commonsLang3 = "3.21.0"
+httpclient = "4.5.14"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -48,6 +49,7 @@ bouncycastle-bcutil = { module = "org.bouncycastle:bcutil-jdk18on", version.ref 
 jose4j = { module = "org.bitbucket.b_c:jose4j", version.ref = "jose4j" }
 jdom2 = { module = "org.jdom:jdom2", version.ref = "jdom2" }
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commonsLang3" }
+httpclient = { module = "org.apache.httpcomponents:httpclient", version.ref = "httpclient" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -69,4 +69,13 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.kotlin.test)
+
+    // Lint runs from its own classpath, which the root buildscript pins don't reach.
+    constraints {
+        androidLintTool(libs.bouncycastle.bcprov)
+        androidLintTool(libs.bouncycastle.bcpkix)
+        androidLintTool(libs.bouncycastle.bcutil)
+        androidLintTool(libs.commons.lang3)
+        androidLintTool(libs.httpclient)
+    }
 }
